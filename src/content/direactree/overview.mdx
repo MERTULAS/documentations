@@ -1,0 +1,85 @@
+# Direactree
+
+<p className="lead">A typed React component for displaying, navigating, and editing directory structures—with selection, toolbox actions, and drag-and-drop built in.</p>
+
+<div className="page-badges">
+  <span>React</span>
+  <span>TypeScript types included</span>
+  <span>Next.js entry point</span>
+  <span>Drag and drop</span>
+</div>
+
+Direactree gives an application a familiar file-explorer experience without requiring you to build recursive rendering, path tracking, editing controls, and move validation from scratch.
+
+<div className="quick-facts">
+  <div><span>Install</span><code>npm install direactree</code></div>
+  <div><span>Package</span><a href="https://www.npmjs.com/package/direactree">npm</a></div>
+  <div><span>Source</span><a href="https://github.com/MERTULAS/direactree">GitHub</a></div>
+</div>
+
+## Why Direactree
+
+Use Direactree anywhere users need to inspect or manage hierarchical data:
+
+- File managers and IDE-style project explorers
+- Content management systems and media libraries
+- Category, menu, and organization editors
+- Database-backed folder structures
+- Read-only directory previews
+
+The component is intentionally persistence-agnostic. It accepts a serializable tree and reports user intent through callbacks, so the same UI can work with local React state, a REST API, or another backend.
+
+## How it works
+
+Direactree separates presentation from data ownership:
+
+```text
+Your TreeNode[]
+      ↓
+  <Direactree />
+      ↓
+selection / create / rename / delete / move events
+      ↓
+Your state manager or API
+      ↓
+Updated TreeNode[]
+```
+
+1. Pass a `TreeNode[]` to `structure`.
+2. Direactree renders the hierarchy and handles its editing interface.
+3. Callback props describe what the user selected or attempted to change.
+4. Your application updates state or persists the operation.
+
+<Callout title="Your application stays in control">
+  Direactree does not choose a database or API design. You decide how callback payloads are validated, saved, and returned as the next structure.
+</Callout>
+
+## Core features
+
+- Create a folder at the root or inside any folder.
+- Create a file at the root or inside any folder.
+- Rename an existing file or folder.
+- Delete an existing file or folder.
+- Move nodes with drag and drop.
+- Observe the current selection as a complete parent path.
+- Use the built-in toolbox or provide custom icons.
+- Configure indentation, initial expansion, dragging, and sticky controls.
+- Use the dedicated Next.js client entry point.
+
+The toolbox can be disabled independently from drag and drop. This makes read-only trees, partially editable trees, and fully editable explorers possible with the same component.
+
+## Safety guarantees
+
+Direactree rejects structural operations that would create an invalid tree:
+
+- A file or folder cannot be moved into itself.
+- A folder cannot be moved into one of its descendants.
+- A file cannot receive child nodes.
+- Create operations cannot target a file node.
+- `onNodeMove` is not called for an invalid destination.
+
+<Callout tone="success" title="Validation before callbacks">
+  Invalid drag destinations are filtered by the component, so `onNodeMove` represents a structurally valid move request. Business rules specific to your application should still be validated in your own handler.
+</Callout>
+
+Continue with [Getting started](/docs/direactree/getting-started), experiment with the [complete file explorer](/docs/direactree/examples), or inspect every [prop and callback](/docs/direactree/api-reference).

@@ -1,57 +1,95 @@
-import styles from "./page.module.css";
-import ExampleUsage from "@/components/Direactree/ExampleUsage";
-import PropsSection from "@/components/Direactree/PropsSection";
-import "@/styles/global.css";
-import { GithubOutlined } from "@ant-design/icons";
+import type { CSSProperties } from "react";
+import Link from "next/link";
+import { SiteHeader } from "@/components/layout/SiteHeader";
+import { getDocHref, projects } from "@/lib/docs/registry";
+
 export default function Home() {
-
   return (
-    <div className={styles.page}>
-      <main className={styles.main}>
-        <h1>Direactree</h1>
-        <p>A React component for showing and interacting with directory structures.</p>
-        <br />
-        <div className={styles.install}>
-          <p> Install: <code>npm install direactree</code></p>
-          <p>Import: <code>import {`${'{ Direactree }'}`} from "direactree";</code></p>
-          <p>Source: <GithubOutlined /> <a href="https://github.com/MERTULAS/direactree">GitHub - MERTULAS/direactree</a></p>
-        </div>
+    <>
+      <SiteHeader />
+      <main className="home">
+        <section className="home-hero">
+          <span className="eyebrow">OPEN-SOURCE DOCUMENTATION</span>
+          <h1>Build with clarity.</h1>
+          <p>
+            Guides, interactive examples, and API references for projects by
+            Mert Ulas—all in one focused workspace.
+          </p>
+          <div className="home-hero__actions">
+            <Link className="button button--primary" href="/docs/direactree">
+              Explore Direactree
+            </Link>
+            <a
+              className="button button--secondary"
+              href="https://github.com/MERTULAS"
+              target="_blank"
+              rel="noreferrer"
+            >
+              View GitHub
+            </a>
+          </div>
+        </section>
 
-        <h3><b>NOTE:</b> For Next.js 13 and later versions:</h3>
-        <p>In Next.js 13 and later versions, all components are considered Server Components by default. Since Direactree is a Client Component, you have two different usage methods:</p>
-        <ul className={styles.includeCodeTags}>
-          <li>1. Using Special Next.js Import (Recommended)</li>
-          <pre className="code-example"><code>import Direactree from "direactree/next";</code></pre>
-          <li>2. Using Default Import</li>
-          <pre className="code-example"><code>{`"use client"
+        <section className="project-catalog" aria-labelledby="projects-title">
+          <div className="section-heading">
+            <div>
+              <span className="eyebrow">PROJECTS</span>
+              <h2 id="projects-title">Choose a project</h2>
+            </div>
+            <p>Each project keeps its own guides and reference navigation.</p>
+          </div>
 
-import Direactree from "direactree";`}
-          </code></pre>
-        </ul>
-        
-        <h2>Getting Started</h2>
+          <div className="project-grid">
+            {projects.map((project) => (
+              <article
+                className="project-card"
+                key={project.slug}
+                style={{
+                  "--card-accent-light": project.accent,
+                  "--card-accent-dark": project.accentDark,
+                } as CSSProperties}
+              >
+                <div className="project-card__top">
+                  <span className="project-card__mark">{project.shortName}</span>
+                  <span className="status-badge">{project.status}</span>
+                </div>
+                <h3>{project.name}</h3>
+                <p>{project.description}</p>
+                <div className="project-card__meta">
+                  <span>v{project.version}</span>
+                  <span>{project.pages.length} pages</span>
+                </div>
+                <Link href={getDocHref(project.slug, "overview")}>
+                  Open documentation <span aria-hidden="true">→</span>
+                </Link>
+              </article>
+            ))}
+          </div>
+        </section>
 
-        <h3>Direactree Features</h3>
-        <ul>
-          <li>Create Folder anywhere in the tree</li>
-          <li>Create File anywhere in the tree</li>
-          <li>Rename file or folder anywhere in the tree</li>
-          <li>Delete file or folder anywhere in the tree</li>
-          <li>Move file or folder anywhere in the tree</li>
-        </ul>
-
-        <h3><b>NOTE:</b> Direactree guarantees the following:</h3>
-        <ul>
-          <li>Folder or file can't move to itself</li>
-          <li>Folders can't move to its children</li>
-          <li>Folders or files can't create in the file</li>
-        </ul>
-        <ExampleUsage />
-        <PropsSection />
-        <footer className={styles.footer}>
-          <p>Made with ❤️ by <span><a style={{ display: 'inline-block' }} href="https://github.com/MERTULAS">MERTULAS</a></span></p>
-        </footer>
+        <section className="home-principles">
+          <div>
+            <span>01</span>
+            <h3>Practical first</h3>
+            <p>Copyable examples sit next to the concepts they explain.</p>
+          </div>
+          <div>
+            <span>02</span>
+            <h3>Easy to navigate</h3>
+            <p>Every page has a stable URL and a predictable place.</p>
+          </div>
+          <div>
+            <span>03</span>
+            <h3>Built to grow</h3>
+            <p>New projects plug into one shared documentation system.</p>
+          </div>
+        </section>
       </main>
-    </div>
+
+      <footer className="site-footer">
+        <span>© {new Date().getFullYear()} Mert Ulas</span>
+        <span>Documentation that stays close to the code.</span>
+      </footer>
+    </>
   );
 }

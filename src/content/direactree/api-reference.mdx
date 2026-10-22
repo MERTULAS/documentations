@@ -1,0 +1,424 @@
+import {
+  ClassNameDemo,
+  DragAndDropDemo,
+  ExpandedDemo,
+  IndentDemo,
+  NodeMoveCallbackDemo,
+  SaveCallbackDemo,
+  SelectionCallbackDemo,
+  StickyToolboxDemo,
+  StructureDemo,
+  ToolboxCallbacksDemo,
+  ToolboxIconsDemo,
+  ToolboxVisibilityDemo,
+} from "@/components/demos/direactree/PropertyDemos";
+
+# Props & callbacks
+
+<p className="lead">A complete reference for every Direactree prop, callback payload, default value, type, behavior rule, and common use case.</p>
+
+## Props overview
+
+| Prop | Type | Default | Purpose |
+| --- | --- | --- | --- |
+| `structure` | `TreeNode[]` | Required | Directory nodes rendered by the component. |
+| `className` | `string` | — | Adds a class to the component root. |
+| `indent` | `number` | `20` | Horizontal offset between hierarchy levels. |
+| `showToolbox` | `boolean` | `true` | Shows create, rename, and delete controls. |
+| `toolboxIcons` | `ToolboxIcons` | Built-in icons | Replaces individual toolbox icons. |
+| `toolboxSticky` | `boolean` | `false` | Keeps the toolbox visible while its container scrolls. |
+| `allowDragAndDrop` | `boolean` | `true` | Enables node movement. |
+| `isAllExpanded` | `boolean` | `false` | Expands every folder for the initial render. |
+| `onCreateFolder` | `(parent: NodePath \| null) => void` | — | Reports the create-folder action. |
+| `onCreateFile` | `(parent: NodePath \| null) => void` | — | Reports the create-file action. |
+| `onRename` | `(node: NodePath) => void` | — | Reports the rename action. |
+| `onDelete` | `(node: NodePath) => void` | — | Reports the delete action. |
+| `onSave` | `(props: SaveProps) => void` | — | Reports a confirmed create or rename. |
+| `onSelectedNodeChange` | `(node: NodePath \| null) => void` | — | Reports selection changes. |
+| `onNodeMove` | `(node: TreeNode, target: TreeNode) => void` | — | Reports a valid drag-and-drop move. |
+
+## structure
+
+<ReferenceMeta type="TreeNode[]" required />
+
+`structure` is the source hierarchy rendered by Direactree. Root items are array entries; nested items live in a folder's `children` array.
+
+```ts
+type TreeNode = {
+  id: string;
+  name: string;
+  type: "file" | "folder";
+  children?: TreeNode[];
+  isExpanded?: boolean;
+};
+```
+
+Example structure:
+
+```ts
+const structure: TreeNode[] = [
+  {
+    id: "0",
+    name: "C:/",
+    type: "folder",
+    children: [
+      {
+        id: "1",
+        name: "Users",
+        type: "folder",
+        children: [
+          {
+            id: "2",
+            name: "John Doe",
+            type: "folder",
+            children: [
+              {
+                id: "3",
+                name: "Documents",
+                type: "folder",
+                children: [
+                  { id: "4", name: "sample.tsx", type: "file" },
+                ],
+              },
+              { id: "5", name: "logs.txt", type: "file" },
+            ],
+          },
+        ],
+      },
+    ],
+  },
+];
+
+<Direactree structure={structure} />;
+```
+
+`children` is optional because files do not contain nodes and empty folders may omit it. Supplying `children: []` for folders is also valid. `isExpanded` controls a folder's initial expansion individually; `isAllExpanded` can override the initial behavior for the whole tree.
+
+<Callout tone="warning" title="Use stable, unique IDs">
+  Selection and update handlers identify nodes by ID. Avoid array indexes when nodes may move, and do not reuse an ID elsewhere in the same structure.
+</Callout>
+
+<StructureDemo />
+
+## Display and interaction
+
+### indent
+
+<ReferenceMeta type="number" defaultValue="20" />
+
+Controls the horizontal indentation between tree levels. The accepted range is `8`–`50`:
+
+- Values below `8` are normalized to `8`.
+- Values above `50` are normalized to `50`.
+
+```tsx
+<Direactree structure={structure} indent={28} />
+```
+
+Use a smaller value in narrow sidebars and a larger value when hierarchy depth should be visually prominent.
+
+<IndentDemo />
+
+### isAllExpanded
+
+<ReferenceMeta type="boolean" defaultValue="false" />
+
+Determines whether all folders are expanded on the initial render.
+
+```tsx
+<Direactree structure={structure} isAllExpanded />
+```
+
+This is useful for small trees where users should see the complete hierarchy immediately. For large structures, keep the default to avoid overwhelming the interface.
+
+<ExpandedDemo />
+
+### allowDragAndDrop
+
+<ReferenceMeta type="boolean" defaultValue="true" />
+
+Enables or disables moving files and folders by dragging.
+
+```tsx
+<Direactree structure={structure} allowDragAndDrop={false} />
+```
+
+Set it to `false` for read-only explorers or when your backend does not support re-parenting. This setting does not hide the toolbox; use `showToolbox` separately.
+
+<DragAndDropDemo />
+
+### showToolbox
+
+<ReferenceMeta type="boolean" defaultValue="true" />
+
+Controls the built-in create-folder, create-file, rename, and delete actions.
+
+```tsx
+<Direactree structure={structure} showToolbox={false} />
+```
+
+Disable it when the tree is only used for navigation or selection. To make a tree completely read-only, combine `showToolbox={false}` and `allowDragAndDrop={false}`.
+
+<ToolboxVisibilityDemo />
+
+### toolboxSticky
+
+<ReferenceMeta type="boolean" defaultValue="false" />
+
+Keeps the toolbox visible while the tree's scroll container moves.
+
+```tsx
+<div style={{ height: 320, overflow: "auto" }}>
+  <Direactree
+    structure={structure}
+    toolboxSticky
+    isAllExpanded
+  />
+</div>
+```
+
+Use it for tall trees inside a height-constrained panel. It has no visible effect when the surrounding content does not scroll.
+
+<StickyToolboxDemo />
+
+### toolboxIcons
+
+<ReferenceMeta type="ToolboxIcons" />
+
+Replaces any built-in toolbox icon with a `ReactNode`. Every field is optional, so icons can be changed individually.
+
+```ts
+type ToolboxIcons = {
+  createFolder?: React.ReactNode;
+  createFile?: React.ReactNode;
+  rename?: React.ReactNode;
+  delete?: React.ReactNode;
+};
+```
+
+```tsx
+const toolboxIcons = {
+  createFolder: <FolderPlusIcon />,
+  createFile: <FilePlusIcon />,
+  rename: <EditIcon />,
+  delete: <TrashIcon />,
+};
+
+<Direactree
+  structure={structure}
+  toolboxIcons={toolboxIcons}
+/>;
+```
+
+Use custom icons to match an existing design system. Icon nodes should have an accessible name when their visual meaning is not accompanied by text.
+
+<ToolboxIconsDemo />
+
+### className
+
+<ReferenceMeta type="string" />
+
+Adds a custom class name to the Direactree root element for layout-level customization.
+
+```tsx
+<Direactree structure={structure} className="project-explorer" />
+```
+
+Prefer the component's public props for behavior and use `className` for spacing, sizing, and placement in your own layout.
+
+<ClassNameDemo />
+
+## Event callbacks
+
+Callback props make it possible to observe interaction and synchronize Direactree with application state or a backend.
+
+`NodePath` is used by selection and toolbox callbacks:
+
+```ts
+type NodePath = {
+  name: string;
+  id: string;
+  type: "file" | "folder";
+  parent: NodePath | null;
+};
+```
+
+Unlike `TreeNode`, `NodePath` describes ancestry through its recursive `parent` field. The root node has `parent: null`.
+
+### onSelectedNodeChange
+
+<ReferenceMeta type="(node: NodePath | null) => void" />
+
+Called when a user selects a node or when selection becomes empty. The callback receives the selected path or `null`.
+
+```tsx
+const [selectedNode, setSelectedNode] = useState<NodePath | null>(null);
+
+<Direactree
+  structure={structure}
+  onSelectedNodeChange={setSelectedNode}
+/>;
+```
+
+Use this callback to show a file preview, populate a detail panel, or enable actions for the current node.
+
+<SelectionCallbackDemo />
+
+### onNodeMove
+
+<ReferenceMeta type="(sourceNode: TreeNode, targetNode: TreeNode) => void" />
+
+Called after a user moves a node onto a valid target folder. The first argument is the moved node and the second is its destination.
+
+```tsx
+const [lastMove, setLastMove] = useState<{
+  source: TreeNode;
+  target: TreeNode;
+} | null>(null);
+
+function handleNodeMove(source: TreeNode, target: TreeNode) {
+  setLastMove({ source, target });
+}
+
+<Direactree structure={structure} onNodeMove={handleNodeMove} />;
+```
+
+The callback is **not called** when:
+
+- The source is dropped onto itself.
+- A folder is dropped into one of its own descendants.
+- The destination is a file.
+
+Set `allowDragAndDrop={false}` when moves should not be available at all.
+
+<NodeMoveCallbackDemo />
+
+### Toolbox action callbacks
+
+<ReferenceMeta type="NodePath callbacks" />
+
+```ts
+onCreateFolder?: (parentNode: NodePath | null) => void;
+onCreateFile?: (parentNode: NodePath | null) => void;
+onRename?: (node: NodePath) => void;
+onDelete?: (node: NodePath) => void;
+```
+
+- `onCreateFolder` fires when folder creation starts and receives the selected parent folder.
+- `onCreateFile` fires when file creation starts and receives the selected parent folder.
+- `onRename` receives the node whose name is about to be edited.
+- `onDelete` receives the node requested for deletion.
+
+If no node is selected, the create callbacks receive `null`. Use this signal to create the new file or folder at the root.
+
+```tsx
+function handleCreateFolder(parent: NodePath | null) {
+  console.log("Create folder under", parent?.id ?? "root");
+}
+
+function handleCreateFile(parent: NodePath | null) {
+  console.log("Create file under", parent?.id ?? "root");
+}
+
+function handleRename(node: NodePath) {
+  console.log("Rename", node.id);
+}
+
+function handleDelete(node: NodePath) {
+  console.log("Delete", node.id);
+}
+
+<Direactree
+  structure={structure}
+  onCreateFolder={handleCreateFolder}
+  onCreateFile={handleCreateFile}
+  onRename={handleRename}
+  onDelete={handleDelete}
+/>;
+```
+
+<ToolboxCallbacksDemo />
+
+### onSave
+
+<ReferenceMeta type="(saveProps: SaveProps) => void" />
+
+Called when the user confirms the name in the editable area. It represents the completed create or rename input, not merely the initial toolbox click.
+
+```ts
+type SaveProps = {
+  newName: string;
+  selectedNode: NodePath | null;
+  actionType: "create" | "edit";
+  createType?: "folder" | "file";
+};
+```
+
+Payload meaning:
+
+| Field | Meaning |
+| --- | --- |
+| `newName` | The value confirmed by the user. |
+| `selectedNode` | The creation parent or node being renamed. |
+| `actionType` | `create` for a new node, `edit` for a rename. |
+| `createType` | `folder` or `file` during creation; omitted for editing. |
+
+```tsx
+const [lastSave, setLastSave] = useState<SaveProps | null>(null);
+
+function handleSave(saveProps: SaveProps) {
+  setLastSave(saveProps);
+  // Persist to your API or update the TreeNode[] here.
+}
+
+<Direactree structure={structure} onSave={handleSave} />;
+```
+
+<SaveCallbackDemo />
+
+## Complete types
+
+These are the public shapes used by the component:
+
+```ts
+interface TreeNode {
+  id: string;
+  name: string;
+  type: "file" | "folder";
+  children?: TreeNode[];
+  isExpanded?: boolean;
+}
+
+type NodePath = {
+  name: string;
+  id: string;
+  type: "file" | "folder";
+  parent: NodePath | null;
+};
+
+interface SaveProps {
+  newName: string;
+  selectedNode: NodePath | null;
+  actionType: "create" | "edit";
+  createType?: "folder" | "file";
+}
+
+interface ToolboxIcons {
+  createFolder?: React.ReactNode;
+  createFile?: React.ReactNode;
+  rename?: React.ReactNode;
+  delete?: React.ReactNode;
+}
+```
+
+Import them directly from the package:
+
+```ts
+import type {
+  DireactreeProps,
+  NodePath,
+  SaveProps,
+  ToolboxIcons,
+  TreeNode,
+} from "direactree";
+```

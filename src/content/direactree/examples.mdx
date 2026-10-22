@@ -1,0 +1,105 @@
+import DireactreePlayground from "@/components/demos/direactree/DireactreePlayground";
+
+# Interactive example
+
+<p className="lead">A complete in-browser file explorer demonstrating selection, content preview, creation, renaming, deletion, and moving nodes.</p>
+
+## File explorer demo
+
+This example keeps its structure in React state and loads mock file contents from the public directory. Every change is local to your browser and can be returned to the initial state with **Reset tree**.
+
+<DireactreePlayground />
+
+## Operations to try
+
+### Select and preview a file
+
+Click a file such as `project-notes.txt`, `config.json`, or `REST-API.md`. `onSelectedNodeChange` receives its `NodePath`, and the example loads the content associated with the node ID.
+
+### Create a folder or file
+
+Select a folder and use the toolbox create action. After a name is confirmed, `onSave` receives:
+
+```ts
+{
+  actionType: "create",
+  createType: "folder", // or "file"
+  newName: "components",
+  selectedNode: { /* selected parent path */ }
+}
+```
+
+When no folder is selected, a create callback receives `null`; the new node can be added at the root.
+
+### Rename or delete a node
+
+Select a node and choose the rename or delete action. Rename is finalized through `onSave` with `actionType: "edit"`. Delete reports the selected `NodePath` through `onDelete`.
+
+### Move a node
+
+Drag a file or folder onto another folder. `onNodeMove` receives the source node and its valid target. Dropping onto a file, onto the source itself, or into a descendant is rejected.
+
+## Implementation notes
+
+The example uses recursive helpers for the three state operations required by a mutable explorer:
+
+```ts
+function findNode(nodes: TreeNode[], id: string): TreeNode | undefined {
+  for (const node of nodes) {
+    if (node.id === id) return node;
+    const nested = node.children ? findNode(node.children, id) : undefined;
+    if (nested) return nested;
+  }
+}
+
+function removeNode(nodes: TreeNode[], id: string): TreeNode | undefined {
+  const index = nodes.findIndex((node) => node.id === id);
+  if (index >= 0) return nodes.splice(index, 1)[0];
+
+  for (const node of nodes) {
+    const removed = node.children ? removeNode(node.children, id) : undefined;
+    if (removed) return removed;
+  }
+}
+```
+
+The `onSave` handler distinguishes creation from editing:
+
+```ts
+function handleSave(change: SaveProps) {
+  if (change.actionType === "create") {
+    // Construct a TreeNode and insert it under change.selectedNode.
+  }
+
+  if (change.actionType === "edit") {
+    // Find change.selectedNode.id and update its name.
+  }
+}
+```
+
+The example clones the current structure before modifying it so React receives a new array instead of a mutated state reference.
+
+## Persisting changes
+
+For a database-backed tree, treat callbacks as commands rather than immediately trusting the browser state:
+
+```ts
+async function handleSave(change: SaveProps) {
+  const response = await fetch("/api/tree", {
+    method: change.actionType === "create" ? "POST" : "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(change),
+  });
+
+  const persistedStructure = await response.json();
+  setStructure(persistedStructure);
+}
+```
+
+Validate permissions, names, and parent relationships on the server. Direactree protects the UI from structurally invalid moves, but application-specific authorization remains your responsibility.
+
+<Callout title="Callback payloads are the integration boundary">
+  The tree handles interaction and path reporting. Your application decides whether to update local state, call an API, show confirmation, or reject the operation.
+</Callout>
+
+Inspect every payload live in the [Props & callbacks reference](/docs/direactree/api-reference).
