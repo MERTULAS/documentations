@@ -1,0 +1,127 @@
+# Getting started
+
+<p className="lead">Install Direactree, select the correct framework entry point, define a typed structure, and render your first tree.</p>
+
+## Installation
+
+Install the package from npm:
+
+<InstallCommand command="npm install direactree" />
+
+Direactree publishes its TypeScript definitions with the package. You do not need a separate `@types` dependency.
+
+Useful links:
+
+- [Direactree source repository](https://github.com/MERTULAS/direactree)
+- [Direactree package on npm](https://www.npmjs.com/package/direactree)
+
+## Framework imports
+
+### React applications
+
+For a client-rendered React application, use the default entry point:
+
+```tsx
+import Direactree from "direactree";
+import type { TreeNode } from "direactree";
+```
+
+### Next.js 13 and newer
+
+Next.js App Router components are Server Components by default, while Direactree is interactive and must run on the client. There are two supported approaches.
+
+**1. Use the dedicated Next.js entry point—recommended:**
+
+```tsx
+import Direactree from "direactree/next";
+import type { TreeNode } from "direactree";
+```
+
+**2. Use the default entry inside your own Client Component:**
+
+```tsx
+"use client";
+
+import Direactree from "direactree";
+```
+
+<Callout tone="warning" title="Keep the client boundary focused">
+  Put the tree in a small Client Component instead of marking an entire page or layout with `"use client"`. The surrounding content can remain server-rendered.
+</Callout>
+
+## Your first tree
+
+The `structure` prop accepts an array of `TreeNode` objects. Every node needs a stable `id`, a visible `name`, and a `type`. Only folders should contain `children`.
+
+```tsx
+"use client";
+
+import Direactree from "direactree/next";
+import type { TreeNode } from "direactree";
+
+const structure: TreeNode[] = [
+  {
+    id: "root",
+    name: "Project",
+    type: "folder",
+    children: [
+      { id: "readme", name: "README.md", type: "file" },
+      {
+        id: "src",
+        name: "src",
+        type: "folder",
+        children: [
+          { id: "app", name: "App.tsx", type: "file" },
+        ],
+      },
+    ],
+  },
+];
+
+export function ProjectTree() {
+  return (
+    <Direactree
+      structure={structure}
+      isAllExpanded
+    />
+  );
+}
+```
+
+The optional `isExpanded` field can control a specific folder's initial state:
+
+```ts
+const folder: TreeNode = {
+  id: "src",
+  name: "src",
+  type: "folder",
+  isExpanded: true,
+  children: [],
+};
+```
+
+Use stable IDs from your own data source whenever possible. IDs are used to identify nodes across selection, editing, and move operations.
+
+## State ownership
+
+A useful first integration observes selection and updates the structure when an edit is saved:
+
+```tsx
+const [structure, setStructure] = useState<TreeNode[]>(initialStructure);
+const [selectedNode, setSelectedNode] = useState<NodePath | null>(null);
+
+function handleSave(change: SaveProps) {
+  // Update local state or send `change` to an API.
+  console.log(change.actionType, change.selectedNode, change.newName);
+}
+
+return (
+  <Direactree
+    structure={structure}
+    onSelectedNodeChange={setSelectedNode}
+    onSave={handleSave}
+  />
+);
+```
+
+`onCreateFolder`, `onCreateFile`, `onRename`, and `onDelete` report the toolbox action immediately. `onSave` reports the final name after the user confirms a create or rename operation. See [Props & callbacks](/docs/direactree/api-reference) for their complete payloads.

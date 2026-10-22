@@ -1,0 +1,41 @@
+# Docs Hub
+
+<p className="lead">A shared, statically generated home for documentation across multiple projects.</p>
+
+Docs Hub separates project content from the interface around it. Every project receives the same navigation, search, responsive layout, and page controls while keeping its own identity and page hierarchy.
+
+## Architecture
+
+The portal has four layers:
+
+1. The project registry describes projects, pages, navigation groups, and headings.
+2. MDX files hold documentation content and may embed interactive React examples.
+3. A static catch-all route resolves registry entries and loads their content.
+4. Shared layout components render the header, project switcher, sidebar, table of contents, and page navigation.
+
+## Content flow
+
+At build time, the registry produces every supported route. A route resolves its project and page, loads the corresponding MDX module, and passes it into the common documentation shell.
+
+```text
+project registry
+      ↓
+generateStaticParams
+      ↓
+/docs/[project]/[page]
+      ↓
+MDX content + shared shell
+      ↓
+static HTML export
+```
+
+## Design principles
+
+- **Project-aware:** the selected project controls its accent, navigation, metadata, and links.
+- **Content-first:** prose is rendered on the server; JavaScript is reserved for interactions.
+- **Static by default:** every public route is known at build time and can be hosted without a Node.js server.
+- **One source of truth:** search, sidebars, breadcrumbs, and pagination use the same registry.
+
+<Callout tone="success" title="A working second project">
+  This guide is itself registered as a separate project, proving that the portal shell is no longer coupled to Direactree.
+</Callout>
