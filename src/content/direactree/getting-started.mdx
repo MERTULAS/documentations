@@ -8,7 +8,17 @@ Install the package from npm:
 
 <InstallCommand command="npm install direactree" />
 
-Direactree publishes its TypeScript definitions with the package. You do not need a separate `@types` dependency.
+Direactree publishes its TypeScript definitions with the package. You do not need a separate `@types` dependency. It works with React 17 and newer.
+
+### Stylesheet
+
+The component adds its stylesheet from JavaScript. Import it as well when the page should be styled before JavaScript runs, such as with server rendering or static export, or when a Content-Security-Policy blocks styles added by scripts:
+
+```tsx
+import "direactree/direactree.css";
+```
+
+In a Next.js App Router project, put this import in the root `layout.tsx`.
 
 Useful links:
 
@@ -104,24 +114,38 @@ Use stable IDs from your own data source whenever possible. IDs are used to iden
 
 ## State ownership
 
-A useful first integration observes selection and updates the structure when an edit is saved:
+`structure` is controlled: your component owns it, and Direactree only reports what the user asked for. Creating, renaming, deleting, or moving a node calls your handler. The tree changes when you pass a new `structure`.
 
 ```tsx
 const [structure, setStructure] = useState<TreeNode[]>(initialStructure);
 const [selectedNode, setSelectedNode] = useState<NodePath | null>(null);
 
-function handleSave(change: SaveProps) {
-  // Update local state or send `change` to an API.
-  console.log(change.actionType, change.selectedNode, change.newName);
-}
-
 return (
   <Direactree
     structure={structure}
     onSelectedNodeChange={setSelectedNode}
-    onSave={handleSave}
+    onSave={(change) => setStructure((current) => applySave(current, change))}
+    onDelete={(node) => setStructure((current) => removeNode(current, node.id))}
+    onNodeMove={(node, target) =>
+      setStructure((current) => moveNode(current, node.id, target.id))
+    }
   />
 );
 ```
 
-`onCreateFolder`, `onCreateFile`, `onRename`, and `onDelete` report the toolbox action immediately. `onSave` reports the final name after the user confirms a create or rename operation. See [Props & callbacks](/docs/direactree/api-reference) for their complete payloads.
+`applySave`, `removeNode`, and `moveNode` are your own helpers. The [interactive example](/docs/direactree/examples#implementation-notes) shows them.
+
+The toolbox only enables what you handle. Without `onSave`, create and rename are disabled. Without `onDelete`, delete is disabled. Without `onNodeMove`, nodes cannot be dragged.
+
+`onCreateFolder`, `onCreateFile`, and `onRename` only mean that the name editor opened. The create or rename itself arrives in `onSave` after the user confirms. Return a Promise from `onSave`, `onDelete`, or `onNodeMove` to make the tree wait for your API. See [Props & callbacks](/docs/direactree/api-reference#async-callbacks-and-errors).
+
+## Upgrading from 0.1
+
+Version 0.2 changes some behavior:
+
+- **Handlers enable the controls.** Toolbox buttons and dragging are disabled when the matching handler is missing. A read-only tree needs no extra props.
+- **`isAllExpanded` is live.** While `true`, every folder stays open. Setting it to `false` closes every folder. A `key` to remount the tree is no longer needed.
+- **Selection follows `structure`.** When the selected node is removed, selection is cleared and `onSelectedNodeChange(null)` is called. A rename or move calls it again with the new path.
+- **The styles use CSS variables.** Overrides that targeted internal class names should set `--direactree-*` variables instead. See [Theming](/docs/direactree/theming#css-variables).
+
+New in 0.2: `theme`, `style`, `confirmDelete`, `messages`, `onActionError`, Promise-returning callbacks, keyboard navigation, and the `direactree/direactree.css` export.

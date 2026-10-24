@@ -1340,6 +1340,17 @@ kbd {
   background: color-mix(in srgb, var(--project-accent, var(--brand)) 8%, var(--surface));
 }
 
+.demo-choice {
+  display: flex;
+  gap: 4px;
+}
+
+.property-demo__controls .demo-choice button[aria-pressed="true"] {
+  border-color: var(--project-accent, var(--brand));
+  color: var(--on-accent);
+  background: var(--project-accent, var(--brand-fill));
+}
+
 .property-demo__body {
   min-width: 0;
 }
@@ -1685,100 +1696,39 @@ kbd {
   border-radius: 0;
 }
 
-/* The package ships with a fixed cool-gray palette. These scoped overrides keep
-   the live examples inside the documentation theme without changing the package. */
-.docs-prose :is(.property-demo, .demo-card) .direactree {
-  border-color: var(--border);
-  color: var(--text);
-  background: var(--surface-elevated);
-  box-shadow: var(--shadow-sm);
-}
-
-.docs-prose :is(.property-demo, .demo-card) .direactree:hover {
-  box-shadow: var(--shadow-sm);
-}
-
-.docs-prose :is(.property-demo, .demo-card) .direactree-loading {
-  border-color: var(--border);
-  color: var(--muted);
-  background: var(--surface-subtle);
-}
-
-.docs-prose :is(.property-demo, .demo-card) .direactree-item-children .direactree-list {
-  border-left-color: var(--border);
-}
-
-.docs-prose :is(.property-demo, .demo-card) .direactree-item-children .direactree-list:hover {
-  border-left-color: var(--border-strong);
-}
-
-.docs-prose :is(.property-demo, .demo-card) .direactree-item-container:hover {
-  background: color-mix(in srgb, var(--project-accent, var(--brand)) 6%, var(--surface-subtle));
-}
-
-.docs-prose :is(.property-demo, .demo-card) .direactree-item-container.selected,
-.docs-prose :is(.property-demo, .demo-card) .direactree-item-selected > .direactree-item-container {
-  background: color-mix(in srgb, var(--project-accent, var(--brand)) 13%, var(--surface));
-  box-shadow: inset 2px 0 0 var(--project-accent, var(--brand));
-}
-
-.docs-prose :is(.property-demo, .demo-card) .direactree-item-button {
-  color: var(--muted);
-}
-
-.docs-prose :is(.property-demo, .demo-card) .direactree-item-container:hover .direactree-item-button,
-.docs-prose :is(.property-demo, .demo-card) .direactree-item-name,
-.docs-prose :is(.property-demo, .demo-card) .direactree-item-container:hover .direactree-item-name {
-  color: var(--text-strong);
-}
-
-.docs-prose :is(.property-demo, .demo-card) .direactree-toolbox {
-  border-color: var(--border);
-  background: var(--surface-subtle);
-}
-
-.docs-prose :is(.property-demo, .demo-card) .direactree-toolbox-button {
-  border-color: var(--border);
-  color: var(--text);
-  background: var(--surface-elevated);
-  box-shadow: var(--shadow-sm);
-}
-
-.docs-prose :is(.property-demo, .demo-card) .direactree-toolbox-button:hover {
-  border-color: color-mix(in srgb, var(--project-accent, var(--brand)) 42%, var(--border));
-  color: var(--project-accent, var(--brand));
-  background: color-mix(in srgb, var(--project-accent, var(--brand)) 7%, var(--surface));
-}
-
-.docs-prose :is(.property-demo, .demo-card) .direactree-edit-node input {
-  border-color: var(--border-strong);
-  color: var(--text-strong);
-  background: var(--surface-elevated);
-}
-
-.docs-prose :is(.property-demo, .demo-card) .direactree-edit-node input:focus {
-  border-color: var(--project-accent, var(--brand));
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--project-accent, var(--brand)) 13%, transparent);
-}
-
-.docs-prose :is(.property-demo, .demo-card) .direactree-edit-node button {
-  color: var(--text);
-  background: var(--surface-subtle);
-}
-
-.docs-prose :is(.property-demo, .demo-card) .direactree-edit-node button:first-of-type,
-.docs-prose :is(.property-demo, .demo-card) .direactree-edit-node button:first-of-type:hover {
-  color: var(--on-accent);
-  background: var(--project-accent, var(--brand-fill));
-}
-
-.docs-prose :is(.property-demo, .demo-card) .direactree-edit-node button:last-of-type:hover {
-  background: color-mix(in srgb, var(--project-accent, var(--brand)) 8%, var(--surface-subtle));
-}
-
-.docs-prose :is(.property-demo, .demo-card) .direactree-item-dragover {
-  border-color: var(--project-accent, var(--brand));
-  background: color-mix(in srgb, var(--project-accent, var(--brand)) 11%, transparent);
+/* Direactree 0.2 exposes its palette as --direactree-* variables. Mapping them to
+   the documentation tokens keeps the live examples in the site theme. Demos marked
+   .property-demo--native opt out so the package's own themes stay visible. */
+.docs-prose :is(.property-demo:not(.property-demo--native), .demo-card) .direactree {
+  --direactree-bg: var(--surface-elevated);
+  --direactree-fg: var(--text);
+  --direactree-border: var(--border);
+  --direactree-shadow: var(--shadow-sm);
+  --direactree-shadow-hover: var(--shadow-sm);
+  --direactree-line: var(--border);
+  --direactree-line-hover: var(--border-strong);
+  --direactree-hover: color-mix(in srgb, var(--project-accent, var(--brand)) 6%, var(--surface-subtle));
+  --direactree-icon: var(--muted);
+  --direactree-icon-hover: var(--text-strong);
+  --direactree-name: var(--text-strong);
+  --direactree-name-hover: var(--text-strong);
+  --direactree-toolbox-bg: var(--surface-subtle);
+  --direactree-toolbox-border: var(--border);
+  --direactree-button-bg: var(--surface-elevated);
+  --direactree-button-border: var(--border);
+  --direactree-button-hover: color-mix(in srgb, var(--project-accent, var(--brand)) 7%, var(--surface));
+  --direactree-selected: color-mix(in srgb, var(--project-accent, var(--brand)) 13%, var(--surface));
+  --direactree-input-border: var(--border-strong);
+  --direactree-input-bg: var(--surface-elevated);
+  --direactree-save-bg: var(--project-accent, var(--brand-fill));
+  --direactree-save-fg: var(--on-accent);
+  --direactree-cancel-hover: color-mix(in srgb, var(--project-accent, var(--brand)) 8%, var(--surface-subtle));
+  --direactree-dragover: color-mix(in srgb, var(--project-accent, var(--brand)) 11%, transparent);
+  --direactree-dragover-border: var(--project-accent, var(--brand));
+  --direactree-focus: var(--project-accent, var(--brand));
+  --direactree-confirm-bg: var(--surface-elevated);
+  --direactree-confirm-border: var(--border-strong);
+  --direactree-confirm-shadow: var(--shadow-md);
 }
 
 @media (max-width: 1180px) {

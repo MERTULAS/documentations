@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import "direactree/direactree.css";
 import "./globals.css";
 
 const themeInitScript = `

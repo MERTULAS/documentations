@@ -6,7 +6,7 @@ import DireactreePlayground from "@/components/demos/direactree/DireactreePlaygr
 
 ## File explorer demo
 
-This example keeps its structure in React state and loads mock file contents from the public directory. Every change is local to your browser and can be returned to the initial state with **Reset tree**.
+This example keeps its structure in React state and loads mock file contents from the public directory. Each handler builds the next tree and calls `setStructure`; Direactree never changes the tree itself. Every change is local to your browser and can be returned to the initial state with **Reset tree**.
 
 <DireactreePlayground />
 
@@ -33,73 +33,125 @@ When no folder is selected, a create callback receives `null`; the new node can 
 
 ### Rename or delete a node
 
-Select a node and choose the rename or delete action. Rename is finalized through `onSave` with `actionType: "edit"`. Delete reports the selected `NodePath` through `onDelete`.
+Select a node and choose the rename or delete action. Rename is finalized through `onSave` with `actionType: "edit"`. The example sets `confirmDelete`, so delete first opens a confirmation under the row; `onDelete` receives the `NodePath` only after you confirm. If the deleted node was selected, the selection clears and the preview empties.
 
 ### Move a node
 
-Drag a file or folder onto another folder. `onNodeMove` receives the source node and its valid target. Dropping onto a file, onto the source itself, or into a descendant is rejected.
+Drag a file or folder onto another folder. `onNodeMove` receives the source node and its valid target. Dropping onto a file, onto the source itself, into a descendant, or into the folder it is already in is rejected.
+
+### Use the keyboard
+
+Click a row, then use the arrow keys. <kbd>→</kbd> opens a folder or moves into it, <kbd>←</kbd> moves back to the parent, and <kbd>Home</kbd> and <kbd>End</kbd> jump to the ends. In the name editor, <kbd>Enter</kbd> saves and <kbd>Escape</kbd> cancels.
 
 ## Implementation notes
 
-The example uses recursive helpers for the three state operations required by a mutable explorer:
+Each handler turns a callback payload into a new tree. The helpers copy the tree before changing it, so React receives a new array instead of a mutated state reference:
 
 ```ts
-function findNode(nodes: TreeNode[], id: string): TreeNode | undefined {
-  for (const node of nodes) {
-    if (node.id === id) return node;
-    const nested = node.children ? findNode(node.children, id) : undefined;
-    if (nested) return nested;
+function applySave(nodes: TreeNode[], change: SaveProps): TreeNode[] {
+  const next = structuredClone(nodes);
+
+  if (change.actionType === "edit" && change.selectedNode) {
+    const node = findNode(next, change.selectedNode.id);
+    if (node) node.name = change.newName;
+    return next;
   }
+
+  const newNode: TreeNode = {
+    id: crypto.randomUUID(),
+    name: change.newName,
+    type: change.createType ?? "file",
+    ...(change.createType === "folder" ? { children: [] } : {}),
+  };
+  const parent = change.selectedNode && findNode(next, change.selectedNode.id);
+
+  if (parent?.type === "folder") {
+    parent.children = [...(parent.children ?? []), newNode];
+  } else {
+    next.push(newNode);
+  }
+  return next;
 }
 
-function removeNode(nodes: TreeNode[], id: string): TreeNode | undefined {
-  const index = nodes.findIndex((node) => node.id === id);
-  if (index >= 0) return nodes.splice(index, 1)[0];
+function moveNode(nodes: TreeNode[], sourceId: string, targetId: string): TreeNode[] {
+  const next = structuredClone(nodes);
+  const moved = detachNode(next, sourceId);
+  const target = findNode(next, targetId);
+  if (!moved || target?.type !== "folder") return nodes;
 
-  for (const node of nodes) {
-    const removed = node.children ? removeNode(node.children, id) : undefined;
-    if (removed) return removed;
-  }
+  target.children = [...(target.children ?? []), moved];
+  return next;
 }
 ```
 
-The `onSave` handler distinguishes creation from editing:
+`findNode` searches the tree by ID, and `detachNode` removes a node from its parent's `children` and returns it. The handlers then stay short:
 
-```ts
-function handleSave(change: SaveProps) {
-  if (change.actionType === "create") {
-    // Construct a TreeNode and insert it under change.selectedNode.
+```tsx
+<Direactree
+  structure={structure}
+  confirmDelete
+  onSave={(change) => setStructure((current) => applySave(current, change))}
+  onDelete={(node) => setStructure((current) => removeNode(current, node.id))}
+  onNodeMove={(node, target) =>
+    setStructure((current) => moveNode(current, node.id, target.id))
   }
-
-  if (change.actionType === "edit") {
-    // Find change.selectedNode.id and update its name.
-  }
-}
+/>
 ```
-
-The example clones the current structure before modifying it so React receives a new array instead of a mutated state reference.
 
 ## Persisting changes
 
-For a database-backed tree, treat callbacks as commands rather than immediately trusting the browser state:
+With a backend, return a Promise from the handler. Direactree shows the request as pending, disables the controls until it settles, and keeps the editor or confirmation open with the error message if it rejects.
 
-```ts
+### Wait for the server
+
+```tsx
 async function handleSave(change: SaveProps) {
   const response = await fetch("/api/tree", {
     method: change.actionType === "create" ? "POST" : "PATCH",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(change),
   });
+  if (!response.ok) throw new Error("The change could not be saved.");
 
-  const persistedStructure = await response.json();
-  setStructure(persistedStructure);
+  setStructure(await response.json());
 }
+```
+
+The row changes only after `setStructure`. If the request fails, the editor stays open with the typed name, so the user can retry.
+
+### Update first, roll back on failure
+
+```tsx
+async function handleSave(change: SaveProps) {
+  const previous = structure;
+  setStructure(applySave(previous, change));
+  try {
+    await api.save(change);
+  } catch (error) {
+    setStructure(previous);
+    throw error;
+  }
+}
+```
+
+Direactree does not roll back for you, because it never changed the tree. Re-throw the error so the editor stays open and `onActionError` is called.
+
+A failed move has no editor to show its error in. Use `onActionError` to show a toast or message:
+
+```tsx
+<Direactree
+  structure={structure}
+  onNodeMove={handleNodeMove}
+  onActionError={(error, action) => {
+    if (action === "move") showToast("The item could not be moved.");
+  }}
+/>
 ```
 
 Validate permissions, names, and parent relationships on the server. Direactree protects the UI from structurally invalid moves, but application-specific authorization remains your responsibility.
 
 <Callout title="Callback payloads are the integration boundary">
-  The tree handles interaction and path reporting. Your application decides whether to update local state, call an API, show confirmation, or reject the operation.
+  The tree handles interaction and path reporting. Your application decides whether to update local state, call an API, or reject the operation.
 </Callout>
 
 Inspect every payload live in the [Props & callbacks reference](/docs/direactree/api-reference).
