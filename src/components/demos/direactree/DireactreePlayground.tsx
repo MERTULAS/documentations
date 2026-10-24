@@ -4,6 +4,7 @@ import { useState } from "react";
 import Direactree from "direactree/next";
 import type { NodePath, SaveProps, TreeNode } from "direactree";
 import { cloneSampleTree } from "./sampleTree";
+import { applySave, moveNode, removeNode } from "./treeOps";
 
 const minimalExample = `"use client";
 
@@ -11,38 +12,30 @@ import { useState } from "react";
 import Direactree from "direactree/next";
 
 export function FileExplorer() {
+  // Direactree only reports intent. The tree changes when this state changes.
   const [structure, setStructure] = useState(initialStructure);
 
   return (
     <Direactree
       structure={structure}
       isAllExpanded
-      showToolbox
+      confirmDelete
       onSelectedNodeChange={(node) => console.log(node)}
-      onSave={(change) => persistChange(change)}
-      onNodeMove={(node, parent) => moveNode(node, parent)}
+      onSave={async (change) => {
+        await api.save(change);
+        setStructure(await api.fetchTree());
+      }}
+      onDelete={async (node) => {
+        await api.remove(node.id);
+        setStructure(await api.fetchTree());
+      }}
+      onNodeMove={async (node, target) => {
+        await api.move(node.id, target.id);
+        setStructure(await api.fetchTree());
+      }}
     />
   );
 }`;
-
-function findNode(nodes: TreeNode[], id: string): TreeNode | undefined {
-  for (const node of nodes) {
-    if (node.id === id) return node;
-    const nested = node.children ? findNode(node.children, id) : undefined;
-    if (nested) return nested;
-  }
-}
-
-function removeNode(nodes: TreeNode[], id: string): TreeNode | undefined {
-  const index = nodes.findIndex((node) => node.id === id);
-  if (index >= 0) return nodes.splice(index, 1)[0];
-
-  for (const node of nodes) {
-    if (!node.children) continue;
-    const removed = removeNode(node.children, id);
-    if (removed) return removed;
-  }
-}
 
 export default function DireactreePlayground() {
   const [structure, setStructure] = useState<TreeNode[]>(cloneSampleTree);
@@ -68,69 +61,18 @@ export default function DireactreePlayground() {
     }
   };
 
+  // When the selected node leaves `structure`, Direactree clears the selection
+  // and calls onSelectedNodeChange(null), which also clears the preview.
   const handleDelete = (node: NodePath) => {
-    setStructure((current) => {
-      const next = JSON.parse(JSON.stringify(current)) as TreeNode[];
-      removeNode(next, node.id);
-      return next;
-    });
-
-    if (selectedNode?.id === node.id) {
-      setSelectedNode(null);
-      setFileContent("");
-    }
+    setStructure((current) => removeNode(current, node.id));
   };
 
   const handleSave = (change: SaveProps) => {
-    setStructure((current) => {
-      const next = JSON.parse(JSON.stringify(current)) as TreeNode[];
-
-      if (change.actionType === "edit" && change.selectedNode) {
-        const node = findNode(next, change.selectedNode.id);
-        if (node) node.name = change.newName;
-        return next;
-      }
-
-      if (change.actionType === "create") {
-        const newNode: TreeNode = {
-          id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
-          name: change.newName,
-          type: change.createType!,
-          ...(change.createType === "folder" ? { children: [] } : {}),
-        };
-        const parent = change.selectedNode
-          ? findNode(next, change.selectedNode.id)
-          : undefined;
-
-        if (parent?.type === "folder") {
-          parent.children ??= [];
-          parent.children.push(newNode);
-        } else {
-          next.push(newNode);
-        }
-      }
-
-      return next;
-    });
+    setStructure((current) => applySave(current, change));
   };
 
-  const handleNodeMove = (node: TreeNode, newParent: TreeNode | null) => {
-    setStructure((current) => {
-      const next = JSON.parse(JSON.stringify(current)) as TreeNode[];
-      const movedNode = removeNode(next, node.id);
-      if (!movedNode) return current;
-
-      if (!newParent) {
-        next.push(movedNode);
-        return next;
-      }
-
-      const target = findNode(next, newParent.id);
-      if (!target || target.type !== "folder") return current;
-      target.children ??= [];
-      target.children.push(movedNode);
-      return next;
-    });
+  const handleNodeMove = (node: TreeNode, target: TreeNode) => {
+    setStructure((current) => moveNode(current, node.id, target.id));
   };
 
   return (
@@ -154,10 +96,8 @@ export default function DireactreePlayground() {
             toolboxSticky
             allowDragAndDrop
             isAllExpanded
+            confirmDelete
             onSelectedNodeChange={handleSelectedNodeChange}
-            onCreateFolder={() => undefined}
-            onCreateFile={() => undefined}
-            onRename={() => undefined}
             onDelete={handleDelete}
             onSave={handleSave}
             onNodeMove={handleNodeMove}

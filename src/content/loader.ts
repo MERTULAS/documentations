@@ -11,6 +11,7 @@ const contentLoaders: Record<string, () => Promise<MdxModule>> = {
   "direactree/examples": () => import("./direactree/examples.mdx"),
   "direactree/api-reference": () =>
     import("./direactree/api-reference.mdx"),
+  "direactree/theming": () => import("./direactree/theming.mdx"),
   "docs-hub/overview": () => import("./docs-hub/overview.mdx"),
   "docs-hub/adding-a-project": () =>
     import("./docs-hub/adding-a-project.mdx"),

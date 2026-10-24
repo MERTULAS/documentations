@@ -18,8 +18,8 @@ importers:
         specifier: 16.4.2
         version: 16.4.2(@mdx-js/loader@3.1.1)(@mdx-js/react@3.1.1(@types/react@19.3.0)(react@19.3.1))
       direactree:
-        specifier: ^0.1.3
-        version: 0.1.4(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
+        specifier: ^0.2.0
+        version: 0.2.0(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
       next:
         specifier: 16.4.2
         version: 16.4.2(@babel/core@7.29.7)(@types/node@20.19.43)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
@@ -944,11 +944,11 @@ packages:
   devlop@1.1.0:
     resolution: {integrity: sha512-RWmIqhcFf1lRYBvNmr7qTNuyCt/7/ns2jbpp1+PalgE/rDQcBT0fioSMUpJ93irlUhC5hrg4cYqe6U+0ImW0rA==}
 
-  direactree@0.1.4:
-    resolution: {integrity: sha512-QRYUGO5ouIRTTgRIDKxLGW8WcO12r9D5hixl3RMVPk476itZ3mIVX8xO7LMHfDUHMFVAzBDUuaIZniTOmAgPKg==}
+  direactree@0.2.0:
+    resolution: {integrity: sha512-KsUqEl/Td+fiVkLkTWJUoHeogdVvaG4yydxSw865wO7Q5RsGbg9ESgD8gBmQKlcbmgt50+ZNBEvVDN/EqNCpZA==}
     peerDependencies:
-      react: '>=16.8.0'
-      react-dom: '>=16.8.0'
+      react: '>=17.0.0'
+      react-dom: '>=17.0.0'
 
   doctrine@2.1.0:
     resolution: {integrity: sha512-35mSku4ZXK0vfCuHEDAwt55dg2jNajHZ1odvF+8SSr82EsZY4QmXfuWso8oEd8zRhVObSN18aM0CjSdoBX7zIw==}
@@ -3021,7 +3021,7 @@ snapshots:
     dependencies:
       dequal: 2.0.3
 
-  direactree@0.1.4(react-dom@19.3.1(react@19.3.1))(react@19.3.1):
+  direactree@0.2.0(react-dom@19.3.1(react@19.3.1))(react@19.3.1):
     dependencies:
       react: 19.3.1
       react-dom: 19.3.1(react@19.3.1)

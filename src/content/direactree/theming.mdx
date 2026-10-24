@@ -1,0 +1,113 @@
+import { ThemeDemo } from "@/components/demos/direactree/PropertyDemos";
+
+# Theming & accessibility
+
+<p className="lead">Pick a built-in theme, restyle the tree with CSS variables, and rely on keyboard navigation and screen-reader semantics that come with the component.</p>
+
+## Stylesheet
+
+The JavaScript entry adds the component stylesheet at runtime. Also import it yourself when the page should be styled before JavaScript runs, for example with server rendering or static export, or when a Content-Security-Policy blocks styles inserted by scripts:
+
+```tsx
+import "direactree/direactree.css";
+```
+
+In Next.js, import it once in the root layout.
+
+## Built-in themes
+
+`theme` accepts `"system"` (the default), `"light"`, or `"dark"`. Only `"system"` follows the user's `prefers-color-scheme`.
+
+```tsx
+<Direactree structure={structure} theme="dark" />
+```
+
+The root element gets `data-direactree-theme` and an inline `color-scheme` of `light`, `dark`, or `light dark`, so native form controls match. A `style` prop is applied after that and can override it.
+
+To follow your own app's theme switch instead of the OS, pass the current value:
+
+```tsx
+<Direactree structure={structure} theme={isDark ? "dark" : "light"} />
+```
+
+<ThemeDemo />
+
+## CSS variables
+
+All colors come from CSS variables on the `.direactree` root. Override them on a class to restyle every tree, or with `style` to restyle one:
+
+```css
+.project-explorer {
+  --direactree-bg: #fffdf8;
+  --direactree-border: #d6cfc2;
+  --direactree-selected: #f3e6d6;
+  --direactree-focus: #88572f;
+}
+
+.project-explorer[data-direactree-theme="dark"] {
+  --direactree-bg: #191b17;
+  --direactree-selected: #3a2c1f;
+}
+```
+
+```tsx
+<Direactree structure={structure} className="project-explorer" />
+```
+
+Keep the selector at least as specific as `.direactree[data-direactree-theme="dark"]` when you change dark colors, or the built-in dark values win.
+
+| Variable | Used for |
+| --- | --- |
+| `--direactree-bg`, `--direactree-fg` | Root surface and text |
+| `--direactree-border` | Root border |
+| `--direactree-shadow`, `--direactree-shadow-hover` | Root shadow, and on hover |
+| `--direactree-line`, `--direactree-line-hover` | Nesting guide lines |
+| `--direactree-hover` | Row hover |
+| `--direactree-selected` | Selected row background |
+| `--direactree-focus` | Focus outline |
+| `--direactree-icon`, `--direactree-icon-hover` | Folder arrows |
+| `--direactree-name`, `--direactree-name-hover` | Node names |
+| `--direactree-toolbox-bg`, `--direactree-toolbox-border` | Toolbox bar |
+| `--direactree-button-bg`, `--direactree-button-border`, `--direactree-button-hover` | Toolbox and secondary buttons |
+| `--direactree-input-bg`, `--direactree-input-border` | Name field |
+| `--direactree-save-bg`, `--direactree-save-fg` | Save button |
+| `--direactree-cancel-hover` | Cancel button hover |
+| `--direactree-confirm-bg`, `--direactree-confirm-border`, `--direactree-confirm-shadow` | Delete confirmation popover |
+| `--direactree-danger` | Error text |
+| `--direactree-danger-bg`, `--direactree-danger-fg`, `--direactree-danger-border`, `--direactree-danger-hover` | Confirm-delete button |
+| `--direactree-dragover`, `--direactree-dragover-border` | Drop target |
+
+The live examples on this site use this method: they map these variables to the documentation palette, so they follow the site's light and dark mode.
+
+Selected rows use the selected background and a heavier font weight. The row does not shift sideways.
+
+## Keyboard
+
+The tree is one tab stop. Focus lands on the selected row, or on the first row when nothing is selected.
+
+| Key | Action |
+| --- | --- |
+| <kbd>↓</kbd> / <kbd>↑</kbd> | Select the next or previous visible row. |
+| <kbd>→</kbd> | Open a closed folder, or move to its first child. |
+| <kbd>←</kbd> | Close an open folder, or move to the parent. |
+| <kbd>Home</kbd> / <kbd>End</kbd> | Select the first or last visible row. |
+| <kbd>Enter</kbd> / <kbd>Space</kbd> | Select the focused row. |
+
+In the name editor, <kbd>Enter</kbd> saves and <kbd>Escape</kbd> cancels. In the delete confirmation, <kbd>Escape</kbd> closes it. Neither key does anything while a request is pending.
+
+## Screen readers
+
+Direactree uses the WAI-ARIA tree pattern:
+
+- The list has `role="tree"` and is labelled by `messages.directoryTree`.
+- Each row is a `treeitem` with `aria-level`, `aria-posinset`, `aria-setsize`, and `aria-selected`. Folders also have `aria-expanded`.
+- Toolbox buttons are labelled from `messages`, so custom icons can be decorative.
+- The name field is labelled "New folder name", "New file name", or "Rename".
+- Errors are announced with `role="alert"`. The delete confirmation is labelled by its title and description, and is `aria-busy` while deleting.
+
+Translate these labels with the [`messages`](/docs/direactree/api-reference#messages) prop.
+
+## Motion and contrast
+
+- With `prefers-reduced-motion: reduce`, transitions and the confirmation animation are off.
+- With `forced-colors: active` (Windows high contrast), the tree uses system colors and the selected row stays visible.
