@@ -1,0 +1,134 @@
+import { HookBackendDemo, HookBasicsDemo, PureHelpersDemo } from "@/components/demos/direactree/HookDemos";
+
+# useDireactree & helpers
+
+<p className="lead">Ready-made tree updates. Plug the hook straight into the callbacks, call it after your API answers, or use the pure helpers with any state library.</p>
+
+## Wire it straight in
+
+`useDireactree` keeps the tree in React state. `save`, `remove`, and `move` have the same signatures as `onSave`, `onDelete`, and `onNodeMove`:
+
+```tsx
+import Direactree, { useDireactree } from "direactree";
+
+function Files() {
+  const tree = useDireactree(initialStructure);
+
+  return (
+    <Direactree
+      structure={tree.structure}
+      onSave={tree.save}
+      onDelete={tree.remove}
+      onNodeMove={tree.move}
+    />
+  );
+}
+```
+
+<HookBasicsDemo />
+
+`tree.save` creates a node with a new id, or renames one. `tree.remove` deletes a node and everything inside it. `tree.move` reads the `MoveInfo` that `onNodeMove` passes, so moves into folders and reorders before or after a row both work.
+
+## After the backend answers
+
+When the change has to reach a server first, handle the callback yourself and call the hook once the request succeeds. If the request throws, the tree stays as it was and the editor or confirmation stays open with the error:
+
+```tsx
+const tree = useDireactree(initialStructure);
+
+async function handleSave(change: SaveProps) {
+  const saved = await api.save(change);
+  // A created node gets the id your backend made.
+  tree.save(change, { id: saved.id });
+}
+
+async function handleDelete(node: NodePath) {
+  await api.deleteFile(node.id);
+  tree.remove(node);
+}
+
+<Direactree
+  structure={tree.structure}
+  onSave={handleSave}
+  onDelete={handleDelete}
+  onNodeMove={tree.move}
+/>
+```
+
+<HookBackendDemo />
+
+### Update first, roll back on failure
+
+```tsx
+async function onSave(change: SaveProps) {
+  const previous = tree.structure;
+  tree.save(change);
+  try {
+    await api.save(change);
+  } catch (error) {
+    tree.setStructure(previous);
+    throw error; // keeps the editor open and calls onActionError
+  }
+}
+```
+
+## Hook reference
+
+<ReferenceMeta type="useDireactree<T>(initial: TreeNode<T>[] | (() => TreeNode<T>[]), options?)" />
+
+| Member | Signature | Use |
+| --- | --- | --- |
+| `structure` | `TreeNode<T>[]` | The current tree. Pass it to `structure`. |
+| `setStructure` | React state setter | Replace the tree, for example after a refetch. |
+| `save` | `(props: SaveProps, overrides?: { id?, data? }) => void` | Apply an `onSave` payload. `id` and `data` apply to a created node. |
+| `remove` | `(node: { id }) => void` | Remove a node and its children. |
+| `move` | `(node, target \| null, placement?: number \| MoveInfo) => void` | Move into a folder, to the root with `null`, or to the place `MoveInfo` names. |
+| `insert` | `(parentId \| null, node, index?) => void` | Add a node yourself. |
+| `update` | `(id, patch \| (node) => node) => void` | Change fields of a node, such as `data` or `locked`. |
+| `setChildren` | `(id, children) => void` | Replace a folder's children. |
+| `loadChildren` | `(node, loader) => Promise<TreeNode<T>[]>` | Run `loader` and store its result as the children. Use it in `onLoadChildren`. |
+| `find` | `(id) => TreeNode<T> \| null` | Look up a node in the current tree. |
+| `reset` | `(next?) => void` | Go back to the first tree, or set a new one. |
+
+| Option | Type | Default | Use |
+| --- | --- | --- | --- |
+| `createId` | `(props: SaveProps) => string` | `crypto.randomUUID()` | Ids for created nodes. |
+| `sort` | `"none" \| "foldersFirst" \| (a, b) => number` | `"none"` | Keep each changed folder sorted. `foldersFirst` sorts names naturally, so `file2` comes before `file10`. |
+
+Every updater is stable between renders and works from the latest tree, so it is safe in async code and effects.
+
+## Pure helpers
+
+The hook is built on pure functions that are exported as well. Use them with Redux, Zustand, a server, or your own `useState`. None of them mutate their input. They copy only the changed branch, and return the input itself when nothing changed.
+
+<PureHelpersDemo />
+
+| Helper | Use |
+| --- | --- |
+| `applySave(nodes, props, { id?, data?, createId? })` | Apply an `onSave` payload. |
+| `insertNode(nodes, parentId \| null, node, index?)` | Add a node to a folder or the root. |
+| `renameNode(nodes, id, name)` | Rename a node. |
+| `updateNode(nodes, id, patch \| fn)` | Change a node. |
+| `removeNode(nodes, id)` | Remove a node and its children. |
+| `moveNode(nodes, id, parentId \| null, index?)` | Move a node. With an index it also reorders inside the same folder. Invalid moves return the input. |
+| `setChildren(nodes, id, children)` | Replace a folder's children. |
+| `sortChildren(nodes, parentId \| null, compare)` | Sort one folder. `compareFoldersFirst` is exported. |
+| `findNode`, `findNodePath`, `locateNode`, `getAncestorIds` | Look up a node, its `NodePath`, its parent and index, or its ancestors. |
+| `resolveDrop(nodes, source, target, position)` | Where a drop would land, or `null` when it is not allowed. |
+| `isMoveable(source, target)` | Whether a node can go into a folder. |
+| `createNodeId()` | The default id maker. |
+
+```ts
+import { applySave, moveNode } from "direactree";
+
+const reducer = (state: TreeNode[], action: Action) => {
+  switch (action.type) {
+    case "save":
+      return applySave(state, action.props, { id: action.id });
+    case "move":
+      return moveNode(state, action.id, action.parentId, action.index);
+    default:
+      return state;
+  }
+};
+```

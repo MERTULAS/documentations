@@ -1079,8 +1079,9 @@ kbd {
   scroll-margin-top: calc(var(--header-height) + 25px);
 }
 
-.docs-prose p,
-.docs-prose ul,
+/* Prose spacing skips the Direactree demos, whose rows are list items too. */
+.docs-prose p:not(.direactree p),
+.docs-prose ul:not(.direactree-list),
 .docs-prose ol {
   margin: 0 0 19px;
 }
@@ -1093,12 +1094,12 @@ kbd {
   line-height: 1.7;
 }
 
-.docs-prose ul,
+.docs-prose ul:not(.direactree-list),
 .docs-prose ol {
   padding-left: 1.35rem;
 }
 
-.docs-prose li {
+.docs-prose li:not(.direactree-row) {
   margin: 6px 0;
   padding-left: 4px;
 }
@@ -1606,7 +1607,8 @@ kbd {
   font-size: 0.82rem;
 }
 
-.demo-card button {
+/* Only the card's own buttons; the tree inside has its own button styles. */
+.demo-card :is(.demo-card__header, .demo-card__footer) button {
   padding: 6px 10px;
   border: 1px solid var(--border-strong);
   border-radius: 7px;
@@ -1618,7 +1620,7 @@ kbd {
   transition: border-color 160ms ease, color 160ms ease, background 160ms ease;
 }
 
-.demo-card button:hover {
+.demo-card :is(.demo-card__header, .demo-card__footer) button:hover {
   border-color: var(--project-accent, var(--brand));
   color: var(--project-accent, var(--brand));
   background: color-mix(in srgb, var(--project-accent, var(--brand)) 7%, var(--surface));
@@ -1696,13 +1698,15 @@ kbd {
   border-radius: 0;
 }
 
-/* Direactree 0.2 exposes its palette as --direactree-* variables. Mapping them to
-   the documentation tokens keeps the live examples in the site theme. Demos marked
-   .property-demo--native opt out so the package's own themes stay visible. */
+/* Direactree exposes its palette as --direactree-* tokens. Mapping them to the
+   documentation tokens keeps the live examples in the site theme, in light and dark.
+   Demos marked .property-demo--native opt out so the package's own themes stay visible. */
 .docs-prose :is(.property-demo:not(.property-demo--native), .demo-card) .direactree {
-  --direactree-bg: var(--surface-elevated);
+  --direactree-surface: var(--surface-elevated);
+  --direactree-bg: transparent;
   --direactree-fg: var(--text);
   --direactree-border: var(--border);
+  --direactree-divider: var(--border);
   --direactree-shadow: var(--shadow-sm);
   --direactree-shadow-hover: var(--shadow-sm);
   --direactree-line: var(--border);
@@ -1716,8 +1720,9 @@ kbd {
   --direactree-toolbox-border: var(--border);
   --direactree-button-bg: var(--surface-elevated);
   --direactree-button-border: var(--border);
-  --direactree-button-hover: color-mix(in srgb, var(--project-accent, var(--brand)) 7%, var(--surface));
-  --direactree-selected: color-mix(in srgb, var(--project-accent, var(--brand)) 13%, var(--surface));
+  --direactree-button-hover: color-mix(in srgb, var(--project-accent, var(--brand)) 9%, var(--surface));
+  --direactree-selected: color-mix(in srgb, var(--project-accent, var(--brand)) 15%, var(--surface));
+  --direactree-selected-fg: var(--text-strong);
   --direactree-input-border: var(--border-strong);
   --direactree-input-bg: var(--surface-elevated);
   --direactree-save-bg: var(--project-accent, var(--brand-fill));
@@ -1729,6 +1734,8 @@ kbd {
   --direactree-confirm-bg: var(--surface-elevated);
   --direactree-confirm-border: var(--border-strong);
   --direactree-confirm-shadow: var(--shadow-md);
+  --direactree-match: color-mix(in srgb, var(--warning) 28%, transparent);
+  font-family: var(--font-sans);
 }
 
 @media (max-width: 1180px) {
@@ -1970,5 +1977,257 @@ kbd {
   *::after {
     scroll-behavior: auto !important;
     transition-duration: 0.01ms !important;
+  }
+}
+
+/* Direactree 0.4 demos */
+
+.property-demo__control-stack {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px 12px;
+  max-width: 420px;
+}
+
+.property-demo__results-row--three {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.property-demo__results-row--three > .property-demo__result + .property-demo__result {
+  border-left: 1px solid color-mix(in srgb, var(--code-text) 12%, transparent);
+}
+
+.demo-range__label {
+  color: var(--text);
+  font-size: 0.71rem;
+  font-weight: 700;
+}
+
+.demo-button-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 12px 18px;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface-subtle);
+}
+
+.demo-button-row button {
+  padding: 5px 9px;
+  border: 1px solid var(--border-strong);
+  border-radius: 7px;
+  color: var(--text);
+  background: var(--surface);
+  cursor: pointer;
+  font-family: var(--font-mono);
+  font-size: 0.66rem;
+  font-weight: 650;
+}
+
+.demo-button-row button:hover {
+  border-color: var(--project-accent, var(--brand));
+  color: var(--project-accent, var(--brand));
+}
+
+.demo-form {
+  display: grid;
+  align-content: start;
+  gap: 14px;
+}
+
+.demo-form label {
+  display: grid;
+  gap: 6px;
+  color: var(--text);
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.demo-form input,
+.demo-search-input {
+  box-sizing: border-box;
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid var(--border-strong);
+  border-radius: 8px;
+  color: var(--text-strong);
+  background: var(--surface-elevated);
+  font: inherit;
+  font-size: 0.82rem;
+}
+
+.demo-search-input {
+  margin-bottom: 8px;
+}
+
+.demo-form input:focus-visible,
+.demo-search-input:focus-visible {
+  outline: 2px solid var(--project-accent, var(--brand));
+  outline-offset: 1px;
+}
+
+.demo-form__call {
+  display: block;
+  padding: 10px;
+  border-radius: 8px;
+  color: var(--code-text);
+  background: var(--code-bg);
+  font-size: 0.68rem;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+.demo-note {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+
+.demo-file-icon {
+  display: inline-grid;
+  place-items: center;
+  width: 16px;
+  height: 16px;
+  border-radius: 3px;
+  color: #fff;
+  font-family: var(--font-mono);
+  font-size: 7px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.demo-badge {
+  min-width: 16px;
+  padding: 0 5px;
+  border-radius: 999px;
+  color: #fff;
+  background: #b91c1c;
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 16px;
+  text-align: center;
+}
+
+.demo-git {
+  min-width: 12px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 800;
+  text-align: center;
+}
+
+.demo-git--M { color: #b45309; }
+.demo-git--A { color: #15803d; }
+.demo-git--U { color: #0f766e; }
+.demo-git--D { color: #b91c1c; }
+
+:root[data-theme="dark"] .demo-git--M { color: #fbbf24; }
+:root[data-theme="dark"] .demo-git--A { color: #4ade80; }
+:root[data-theme="dark"] .demo-git--U { color: #5eead4; }
+
+.demo-size {
+  margin-inline-start: 8px;
+  color: var(--muted);
+  font-size: 0.85em;
+  font-weight: 400;
+}
+
+.demo-row-modified .direactree-item-name {
+  color: #b45309;
+}
+
+:root[data-theme="dark"] .demo-row-modified .direactree-item-name {
+  color: #fbbf24;
+}
+
+.demo-color {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text);
+  font-size: 0.71rem;
+  font-weight: 700;
+}
+
+.demo-color input {
+  width: 28px;
+  height: 22px;
+  padding: 0;
+  border: 1px solid var(--border-strong);
+  border-radius: 5px;
+  background: none;
+}
+
+.demo-theme-pair {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.demo-stage {
+  position: relative;
+  padding: 18px;
+}
+
+.demo-stage--light {
+  background: #f8fafc;
+}
+
+.demo-stage--dark {
+  background: #020617;
+}
+
+.demo-stage__label {
+  display: block;
+  margin-bottom: 8px;
+  color: #64748b;
+  font-family: var(--font-mono);
+  font-size: 0.66rem;
+  font-weight: 700;
+}
+
+.demo-cn-root {
+  padding: 8px;
+  border: 1px dashed var(--project-accent, var(--brand));
+  border-radius: 12px;
+}
+
+.demo-cn-toolbox {
+  justify-content: flex-end;
+}
+
+.demo-cn-button {
+  border-radius: 999px;
+}
+
+.demo-cn-item {
+  border-radius: 999px;
+}
+
+.demo-cn-label {
+  letter-spacing: 0.02em;
+  text-transform: lowercase;
+}
+
+.demo-cn-row[data-type="folder"] .demo-cn-label {
+  font-variant: small-caps;
+  text-transform: none;
+}
+
+@media (max-width: 880px) {
+  .property-demo__control-stack {
+    justify-content: flex-start;
+    max-width: none;
+  }
+
+  .property-demo__results-row--three,
+  .demo-theme-pair {
+    grid-template-columns: 1fr;
+  }
+
+  .property-demo__results-row--three > .property-demo__result + .property-demo__result {
+    border-left: 0;
+    border-top: 1px solid color-mix(in srgb, var(--code-text) 12%, transparent);
   }
 }

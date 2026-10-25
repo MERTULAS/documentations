@@ -1,0 +1,59 @@
+import { LazyLoadingDemo, VirtualizationDemo } from "@/components/demos/direactree/LargeTreeDemos";
+
+# Large trees
+
+<p className="lead">Load folder contents only when they are opened, and render only the rows in view, so a tree with tens of thousands of nodes stays fast.</p>
+
+## Lazy loading
+
+Give a folder `hasChildren: true` and leave `children` out. The first time it opens, `onLoadChildren` runs and a loading row appears under it. If the Promise rejects, the row shows the error and a **Retry** button, and `onActionError` is called with `"load"`.
+
+`useDireactree().loadChildren` runs your loader and stores the result:
+
+```tsx
+const tree = useDireactree([
+  { id: "bucket", name: "s3://assets", type: "folder", hasChildren: true },
+]);
+
+<Direactree
+  structure={tree.structure}
+  onLoadChildren={(node) => tree.loadChildren(node, (folder) => api.listFolder(folder.id))}
+/>
+```
+
+<LazyLoadingDemo />
+
+Without the hook, put the loaded children into `structure` yourself and return the Promise from `onLoadChildren`, so the tree knows when loading ends:
+
+```tsx
+onLoadChildren={async (node) => {
+  const children = await api.listFolder(node.id);
+  setStructure((current) => setChildren(current, node.id, children));
+}}
+```
+
+Each folder is requested once. A folder that loaded an empty list stays empty. Loading follows the open state, so `isAllExpanded`, `expandedIds`, and `revealNode` can start loads as well.
+
+## Virtualization
+
+```tsx
+<Direactree structure={structure} virtualized={{ height: 480 }} />
+```
+
+Only the rows in view, plus a few above and below, are in the page. Search, keyboard navigation, `revealNode`, drag and drop, editing, lazy loading, and the context menu all keep working.
+
+<VirtualizationDemo />
+
+| Option | Default | Use |
+| --- | --- | --- |
+| `height` | `360px` | Height of the scrolling area. A number means pixels. The CSS token `--direactree-viewport-height` does the same. |
+| `rowHeight` | The density row height (28 or 22) | Height of one row in pixels. It also sets `--direactree-row-height`, so CSS and the window math agree. |
+| `overscan` | `8` | Extra rows rendered above and below the visible area. |
+
+`virtualized={true}` uses all the defaults. The scrolling area needs a fixed height, from `height` or CSS; otherwise it grows with the content and every row is rendered again.
+
+If you change `--direactree-row-height` in CSS and leave `rowHeight` out, the tree reads the CSS value. The create and rename editor is taller than a row; it is measured when it opens.
+
+<Callout tone="warning" title="Keep render functions light">
+  With virtualization the slots run only for the rows in view, but `filterNode` runs over the whole tree on every search change. Keep it fast and wrap it in `useCallback`.
+</Callout>

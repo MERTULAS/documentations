@@ -1,0 +1,119 @@
+import {
+  ContextMenuDemo,
+  RowSlotsDemo,
+  ToolboxActionsDemo,
+} from "@/components/demos/direactree/CustomizationDemos";
+
+# Rows, menus & toolbox
+
+<p className="lead">Show file type icons, Git status, error counts, and sizes on each row, add your own right-click items, and put your own buttons in the toolbox.</p>
+
+## Your own data
+
+`TreeNode` takes a type parameter for a `data` field. Direactree passes it through untouched, so the render functions below can read it with full types:
+
+```ts
+type FileData = { git?: "M" | "A" | "U"; errors?: number; size?: string };
+
+const structure: TreeNode<FileData>[] = [
+  { id: "button", name: "Button.tsx", type: "file", data: { git: "M", errors: 2 } },
+];
+
+<Direactree<FileData> structure={structure} renderBadge={(node) => node.data?.git} />
+```
+
+## Row slots
+
+Four optional functions shape each row. Each receives the node and its state: `{ expanded, selected, depth }`.
+
+| Prop | Places | Typical use |
+| --- | --- | --- |
+| `renderIcon(node, state)` | Before the name, after the folder arrow | File type icons, open and closed folder icons |
+| `renderLabel(node, state)` | Replaces the name | Extra text such as a size. `state.highlighted` already holds the search mark, and `state.term` the search term. |
+| `renderBadge(node, state)` | After the name, at the end of the row | Git status, error counts, unsaved dots |
+| `getRowClassName(node, state)` | A class on the row | Color modified files, dim ignored ones |
+
+```tsx
+<Direactree<FileData>
+  structure={structure}
+  renderIcon={(node, { expanded }) => <FileIcon node={node} expanded={expanded} />}
+  renderBadge={(node) => (
+    <>
+      {node.data?.errors ? <span className="error-badge">{node.data.errors}</span> : null}
+      {node.data?.git ? <span className={`git-${node.data.git}`}>{node.data.git}</span> : null}
+    </>
+  )}
+  renderLabel={(node, { highlighted }) => (
+    <>
+      {highlighted}
+      <small>{node.data?.size}</small>
+    </>
+  )}
+  getRowClassName={(node) => (node.data?.git === "M" ? "row-modified" : undefined)}
+/>
+```
+
+<RowSlotsDemo />
+
+The accessible name of each row stays the node name, so icons and badges can be decorative. Give a badge a `title` when its meaning is not obvious.
+
+## Context menu
+
+`contextMenu` shows a menu on right-click, <kbd>Shift</kbd>+<kbd>F10</kbd>, or the menu key. `true` shows the built-in items: Create Folder and Create File on folders, Rename, and Delete. They follow permissions and handlers, and turn off while a request is pending.
+
+Pass a function to change the list. It receives the node, the built-in items, and the node's path:
+
+```tsx
+<Direactree
+  structure={structure}
+  contextMenu={(node, defaults, path) => [
+    ...defaults,
+    "separator",
+    { id: "copy", label: "Copy path", icon: <CopyIcon />, onSelect: (target, path) => copy(path) },
+    { id: "reveal", label: "Reveal in Finder", disabled: node.type === "file", onSelect: openFolder },
+  ]}
+/>
+```
+
+```ts
+type ContextMenuEntry =
+  | {
+      id: string;
+      label: React.ReactNode;
+      icon?: React.ReactNode;
+      disabled?: boolean;
+      danger?: boolean;
+      onSelect: (node: TreeNode, path: NodePath) => void;
+    }
+  | "separator";
+```
+
+<ContextMenuDemo />
+
+The menu takes <kbd>↑</kbd>, <kbd>↓</kbd>, <kbd>Home</kbd>, <kbd>End</kbd>, <kbd>Enter</kbd>, and <kbd>Escape</kbd>, which returns focus to the row. It closes on scroll and on a click outside. Without `contextMenu`, the browser menu is left alone.
+
+## Toolbox actions
+
+`toolboxActions` adds buttons after the built-in ones. `onClick` and a `disabled` function receive the focused node and every selected id:
+
+```tsx
+<Direactree
+  ref={ref}
+  structure={structure}
+  selectionMode="multiple"
+  toolboxActions={[
+    { id: "collapse", label: "Collapse all", icon: <CollapseIcon />, onClick: () => ref.current?.collapseAll() },
+    {
+      id: "delete-selected",
+      label: "Delete selected",
+      icon: <TrashIcon />,
+      disabled: (_node, ids) => ids.length < 2,
+      onClick: (_node, ids) => deleteMany(ids),
+    },
+  ]}
+/>
+```
+
+<ToolboxActionsDemo />
+
+`label` is the button's accessible name and tooltip. The built-in buttons can get your own icons through [`toolboxIcons`](/docs/direactree/api-reference#toolboxicons), and the whole toolbox can be hidden with `showToolbox={false}`.

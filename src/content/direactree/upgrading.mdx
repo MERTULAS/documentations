@@ -1,0 +1,91 @@
+# Upgrading
+
+<p className="lead">What changes when you move to Direactree 0.4, from 0.3 or from 0.2, and the few lines each change needs.</p>
+
+## From 0.3 to 0.4
+
+### Import the stylesheet
+
+The JavaScript no longer adds styles. Without this line the tree is unstyled:
+
+```tsx
+import "direactree/direactree.css"; // once, for example in app/layout.tsx
+```
+
+### The default look is plain
+
+The default `appearance` is now `"plain"`: no border or shadow, 28px rows, SVG icons, and selection across the whole row. For a look close to 0.3:
+
+```tsx
+<Direactree structure={structure} appearance="card" />
+```
+
+### indent is the full space per level
+
+In 0.3 each level added `indent + 8px`. Now it adds `indent`. To keep the old spacing, add 8: `indent={28}` instead of `indent={20}`.
+
+### Enter opens folders
+
+<kbd>Enter</kbd> on a folder now opens or closes it, and calls the new `onNodeActivate`. <kbd>Space</kbd> only selects.
+
+### onNodeMove has a third argument
+
+```tsx
+onNodeMove={(node, target, info) => {
+  // info: { position: "inside" | "before" | "after", parentId, index }
+}}
+```
+
+Handlers that take two arguments keep working. `useDireactree().move` reads `info` directly. Before and after positions only happen with the new `allowReorder`.
+
+### toolboxActions get the selected ids
+
+`onClick(selectedNode, selectedIds)` and `disabled(selectedNode, selectedIds)` now receive a second argument.
+
+### Styles moved to data attributes
+
+The built-in CSS targets `[data-selected]`, `[data-state="open"]`, `[data-drop-position]`, and similar attributes. The old classes `direactree-item-selected` and `direactree-item-dragover` are still set. Colors use `light-dark()`, so a single color you set applies to both themes; see [one color or two](/docs/direactree/theming#one-color-or-two).
+
+### New in 0.4
+
+`appearance`, `density`, `classNames`, `direactree.layer.css`, typed `style` tokens, right-to-left support, `onNodeActivate`, `allowReorder`, `expandedIds` / `defaultExpandedIds` / `onExpandedChange`, `selectionMode="multiple"` with `selectedIds` and `onSelectionChange`, type-ahead, `getSelectedIds()` and `getExpandedIds()` on the ref, and `resolveDrop`. The bundle is 46 KB minified (15 KB gzipped), down from 121 KB.
+
+## From 0.2 to 0.3
+
+### Rows are one flat list
+
+The tree renders one `<ul role="tree">` with an `<li>` per row instead of nested `<ul role="group">` lists. Depth is exposed through `aria-level`, `aria-posinset`, and `aria-setsize`. CSS that targeted `.direactree-item-children` or nested `.direactree-list` needs updating.
+
+### The default export takes a ref
+
+`Direactree` is a `forwardRef` component, so a `ref` gives you the [handle](/docs/direactree/navigation#reveal-from-code). Code that checked `typeof Direactree === "function"` needs to change.
+
+### Names are checked
+
+Blank names, forbidden characters, reserved names, and duplicates in the same folder are refused in the editor, and the name sent to `onSave` is trimmed. Turn it off with `validateName={false}`. A drop that would create a duplicate name is refused as well.
+
+### Hand-written tree helpers can go
+
+```diff
+- const [structure, setStructure] = useState(initialStructure);
+- onSave={(change) => setStructure((current) => applySave(current, change))}
+- onDelete={(node) => setStructure((current) => removeNode(current, node.id))}
+- onNodeMove={(node, target) => setStructure((current) => moveNode(current, node.id, target.id))}
++ const tree = useDireactree(initialStructure);
++ structure={tree.structure}
++ onSave={tree.save}
++ onDelete={tree.remove}
++ onNodeMove={tree.move}
+```
+
+### New in 0.3
+
+`useDireactree` and the pure helpers, name checks, per-node permissions, search, `revealNode` and the ref handle, controlled `selectedId`, row slots (`renderIcon`, `renderBadge`, `renderLabel`, `getRowClassName`), `TreeNode.data`, the context menu, `toolboxActions`, F2 and Delete shortcuts, lazy loading, and virtualization. `DireactreeMutation` gained `"load"`.
+
+## From 0.1 to 0.2
+
+- Toolbox buttons and dragging are enabled only when the matching handler is passed.
+- `isAllExpanded` can change at any time; no `key` is needed to remount.
+- Selection follows `structure`: a removed node clears it, and a rename or move reports the new path.
+- Colors became CSS variables.
+- New: `theme`, `style`, `confirmDelete`, `messages`, `onActionError`, Promise-returning callbacks, and keyboard navigation.

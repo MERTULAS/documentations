@@ -9,6 +9,7 @@ A statically generated documentation portal for multiple projects. The site is b
 - Responsive sidebar and mobile drawer
 - Documentation search and theme selection
 - MDX content with interactive React examples
+- GitHub Flavored Markdown tables through remark-gfm
 - Page table of contents, breadcrumbs, and previous/next navigation
 - Static HTML export for serverless hosting
 
@@ -50,7 +51,14 @@ The same registry powers static route generation, project cards, sidebar navigat
 /docs/direactree
 /docs/direactree/getting-started
 /docs/direactree/examples
+/docs/direactree/tree-updates
+/docs/direactree/validation
+/docs/direactree/navigation
+/docs/direactree/customization
+/docs/direactree/large-trees
+/docs/direactree/theming
 /docs/direactree/api-reference
+/docs/direactree/upgrading
 /docs/docs-hub
 /docs/docs-hub/adding-a-project
 ```
