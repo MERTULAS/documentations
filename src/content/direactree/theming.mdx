@@ -1,52 +1,69 @@
-import { ThemeDemo } from "@/components/demos/direactree/PropertyDemos";
+import {
+  AppearanceDemo,
+  ClassNamesDemo,
+  DataAttributesDemo,
+  TokenPlaygroundDemo,
+} from "@/components/demos/direactree/StylingDemos";
 
-# Theming & accessibility
+# Styling & accessibility
 
-<p className="lead">Pick a built-in theme, restyle the tree with CSS variables, and rely on keyboard navigation and screen-reader semantics that come with the component.</p>
+<p className="lead">Pick a theme, appearance, and density, recolor the tree with CSS tokens, target row state with data attributes, and rely on the keyboard, screen-reader, motion, and contrast support that comes with it.</p>
 
 ## Stylesheet
-
-The JavaScript entry adds the component stylesheet at runtime. Also import it yourself when the page should be styled before JavaScript runs, for example with server rendering or static export, or when a Content-Security-Policy blocks styles inserted by scripts:
 
 ```tsx
 import "direactree/direactree.css";
 ```
 
-In Next.js, import it once in the root layout.
+Import it once, in Next.js in the root layout. Since 0.4 the JavaScript adds no styles, so without this import the tree is unstyled. That also makes it work under a strict Content-Security-Policy and styled before JavaScript runs.
 
-## Built-in themes
+| File | Use |
+| --- | --- |
+| `direactree/direactree.css` | The rules as plain CSS. Load your own stylesheet after it to override. |
+| `direactree/direactree.layer.css` | The same rules inside `@layer direactree`. Any CSS in your app that is not in a layer wins over them, in any order, without `!important`. |
+| Neither | Style the tree from scratch with `classNames` and the data attributes below. |
 
-`theme` accepts `"system"` (the default), `"light"`, or `"dark"`. Only `"system"` follows the user's `prefers-color-scheme`.
+<Callout tone="warning" title="Global resets and the layered file">
+  With the layered file, every unlayered rule in your app wins, including broad resets such as `button { background: none }` or `ul { padding-left: 2rem }`. Use it when you style most of the tree yourself, or scope your resets so they skip `.direactree`.
+</Callout>
+
+## Theme, appearance, density
 
 ```tsx
-<Direactree structure={structure} theme="dark" />
+<Direactree
+  structure={structure}
+  theme="system"        // "light" | "dark" | "system"
+  appearance="plain"    // "plain" | "card"
+  density="comfortable" // "comfortable" | "compact"
+  indent={20}
+/>
 ```
 
-The root element gets `data-direactree-theme` and an inline `color-scheme` of `light`, `dark`, or `light dark`, so native form controls match. A `style` prop is applied after that and can override it.
+- **`theme`**: `"system"` (default) follows the operating system; `"light"` and `"dark"` stay fixed. To follow your app's own switch, pass its value: `theme={isDark ? "dark" : "light"}`.
+- **`appearance`**: `"plain"` (default) has no border or shadow, so the tree sits inside a sidebar or panel. Its background follows the theme. `"card"` adds a border, padding, shadow, and a boxed toolbox.
+- **`density`**: `"comfortable"` (default) has 28px rows and 14px text; `"compact"` has 22px rows and 13px text.
+- **`indent`**: the space added per level, 8 to 50 pixels.
 
-To follow your own app's theme switch instead of the OS, pass the current value:
+Selection fills the whole row. Indent, guide lines, chevrons, and drop markers use logical CSS properties, so the tree mirrors correctly inside `dir="rtl"`.
+
+<AppearanceDemo />
+
+## CSS tokens
+
+Every color and size is a `--direactree-*` custom property on the `.direactree` root. Set them on your own class, or on one tree through `style`. The `style` prop is typed to accept these tokens, so TypeScript needs no cast:
 
 ```tsx
-<Direactree structure={structure} theme={isDark ? "dark" : "light"} />
+<Direactree
+  structure={structure}
+  style={{ "--direactree-bg": "transparent", "--direactree-row-height": "24px" }}
+/>
 ```
-
-<ThemeDemo />
-
-## CSS variables
-
-All colors come from CSS variables on the `.direactree` root. Override them on a class to restyle every tree, or with `style` to restyle one:
 
 ```css
 .project-explorer {
-  --direactree-bg: #fffdf8;
-  --direactree-border: #d6cfc2;
   --direactree-selected: #f3e6d6;
   --direactree-focus: #88572f;
-}
-
-.project-explorer[data-direactree-theme="dark"] {
-  --direactree-bg: #191b17;
-  --direactree-selected: #3a2c1f;
+  --direactree-radius: 4px;
 }
 ```
 
@@ -54,60 +71,129 @@ All colors come from CSS variables on the `.direactree` root. Override them on a
 <Direactree structure={structure} className="project-explorer" />
 ```
 
-Keep the selector at least as specific as `.direactree[data-direactree-theme="dark"]` when you change dark colors, or the built-in dark values win.
+Load your stylesheet after `direactree.css`, because `.project-explorer` and the built-in `.direactree` rule have the same weight. With `direactree.layer.css` the order does not matter.
 
-| Variable | Used for |
+### One color or two
+
+The built-in colors are written with `light-dark(light, dark)`. The root sets `color-scheme` from `theme`, and the browser picks the half that matches. A plain value applies to both themes: a light amber selection that looks right on the light theme puts a bright bar behind light text on the dark theme. Give each theme its own color with `light-dark()`:
+
+```tsx
+<Direactree
+  structure={structure}
+  style={{
+    "--direactree-selected": "light-dark(#ede9fe, #4c1d95)",
+    "--direactree-selected-fg": "light-dark(#4c1d95, #ede9fe)",
+  }}
+/>
+```
+
+<TokenPlaygroundDemo />
+
+To change many tokens for one fixed theme, select on `data-direactree-theme`. A `theme="system"` tree switches with the operating system, so use `light-dark()` for it:
+
+```css
+.project-explorer[data-direactree-theme="dark"] {
+  --direactree-surface: #191b17;
+  --direactree-line: #3f3f46;
+}
+```
+
+`light-dark()` needs Chrome 123, Safari 17.5, Firefox 120, or newer. The live examples on this site map the tokens to the documentation palette, so they follow this site's light and dark switch.
+
+### Token list
+
+| Token | Use |
 | --- | --- |
-| `--direactree-bg`, `--direactree-fg` | Root surface and text |
-| `--direactree-border` | Root border |
-| `--direactree-shadow`, `--direactree-shadow-hover` | Root shadow, and on hover |
-| `--direactree-line`, `--direactree-line-hover` | Nesting guide lines |
-| `--direactree-hover` | Row hover |
-| `--direactree-selected` | Selected row background |
+| `--direactree-surface` | Theme surface: the default background, the card, the sticky toolbox |
+| `--direactree-bg` | Root background. Defaults to the surface; set `transparent` to show your page behind the tree. |
+| `--direactree-fg` | Root text |
+| `--direactree-border`, `--direactree-divider` | Card border, toolbox divider |
+| `--direactree-shadow`, `--direactree-shadow-hover` | Card shadow |
+| `--direactree-row-height`, `--direactree-font-size` | Row height and text size, set by `density` |
+| `--direactree-radius` | Corner radius of rows and buttons |
+| `--direactree-indent` | Space per level, set by `indent` |
+| `--direactree-toolbox-button-size` | Toolbox button size |
+| `--direactree-viewport-height` | Scroll height of a virtualized tree |
+| `--direactree-line`, `--direactree-line-hover` | Indent guide lines |
+| `--direactree-hover` | Row hover background |
+| `--direactree-name`, `--direactree-name-hover` | Row text |
+| `--direactree-icon`, `--direactree-icon-hover` | Chevrons, icons, badges, muted text |
+| `--direactree-selected`, `--direactree-selected-fg` | Selected rows |
 | `--direactree-focus` | Focus outline |
-| `--direactree-icon`, `--direactree-icon-hover` | Folder arrows |
-| `--direactree-name`, `--direactree-name-hover` | Node names |
-| `--direactree-toolbox-bg`, `--direactree-toolbox-border` | Toolbox bar |
-| `--direactree-button-bg`, `--direactree-button-border`, `--direactree-button-hover` | Toolbox and secondary buttons |
-| `--direactree-input-bg`, `--direactree-input-border` | Name field |
-| `--direactree-save-bg`, `--direactree-save-fg` | Save button |
-| `--direactree-cancel-hover` | Cancel button hover |
-| `--direactree-confirm-bg`, `--direactree-confirm-border`, `--direactree-confirm-shadow` | Delete confirmation popover |
-| `--direactree-danger` | Error text |
-| `--direactree-danger-bg`, `--direactree-danger-fg`, `--direactree-danger-border`, `--direactree-danger-hover` | Confirm-delete button |
-| `--direactree-dragover`, `--direactree-dragover-border` | Drop target |
+| `--direactree-match` | Search match background |
+| `--direactree-dragover`, `--direactree-dragover-border` | Drop target box and drop line |
+| `--direactree-toolbox-bg`, `--direactree-toolbox-border` | Card toolbox |
+| `--direactree-button-bg`, `--direactree-button-border`, `--direactree-button-hover` | Buttons |
+| `--direactree-input-bg`, `--direactree-input-border` | Name and search fields |
+| `--direactree-save-bg`, `--direactree-save-fg`, `--direactree-cancel-hover` | Editor buttons |
+| `--direactree-confirm-bg`, `--direactree-confirm-border`, `--direactree-confirm-shadow` | Delete confirmation and context menu |
+| `--direactree-danger`, `--direactree-danger-bg`, `--direactree-danger-fg`, `--direactree-danger-border`, `--direactree-danger-hover` | Errors and destructive buttons |
 
-The live examples on this site use this method: they map these variables to the documentation palette, so they follow the site's light and dark mode.
+## State attributes
 
-Selected rows use the selected background and a heavier font weight. The row does not shift sideways.
+Each row is an `<li class="direactree-row">` with its state in data attributes. Style these instead of depending on the markup depth:
 
-## Keyboard
-
-The tree is one tab stop. Focus lands on the selected row, or on the first row when nothing is selected.
-
-| Key | Action |
+| Attribute | Value |
 | --- | --- |
-| <kbd>↓</kbd> / <kbd>↑</kbd> | Select the next or previous visible row. |
-| <kbd>→</kbd> | Open a closed folder, or move to its first child. |
-| <kbd>←</kbd> | Close an open folder, or move to the parent. |
-| <kbd>Home</kbd> / <kbd>End</kbd> | Select the first or last visible row. |
-| <kbd>Enter</kbd> / <kbd>Space</kbd> | Select the focused row. |
+| `data-type` | `file` or `folder` |
+| `data-state` | `open` or `closed` (folders) |
+| `data-depth` | Level, from 0 |
+| `data-selected` | Present when selected |
+| `data-active` | Present on the focused selection |
+| `data-match` | Present when the row matches the search |
+| `data-locked` | `true` on locked nodes |
+| `data-drop-position` | `inside`, `before`, or `after` while dragging over it |
 
-In the name editor, <kbd>Enter</kbd> saves and <kbd>Escape</kbd> cancels. In the delete confirmation, <kbd>Escape</kbd> closes it. Neither key does anything while a request is pending.
+The root also has `data-direactree-theme`, `data-appearance`, and `data-density`.
+
+```css
+.direactree-row[data-type="folder"] > .direactree-item-anchor .direactree-item-name {
+  font-weight: 500;
+}
+
+.direactree-row[data-locked] .direactree-item-name {
+  opacity: 0.6;
+}
+```
+
+<DataAttributesDemo />
+
+## classNames
+
+`classNames` adds your classes to each part of the tree, which suits Tailwind and other utility CSS:
+
+```tsx
+<Direactree
+  structure={structure}
+  classNames={{
+    root: "text-sm",
+    row: "group",
+    item: "rounded-md",
+    label: "truncate",
+    toolboxButton: "hover:bg-zinc-100",
+  }}
+/>
+```
+
+Slots: `root`, `toolbox`, `toolboxButton`, `search`, `viewport`, `list`, `row`, `item`, `toggle`, `icon`, `label`, `badge`, `editor`, `menu`, `menuItem`, `confirm`.
+
+<ClassNamesDemo />
 
 ## Screen readers
 
-Direactree uses the WAI-ARIA tree pattern:
+Direactree follows the WAI-ARIA tree pattern:
 
-- The list has `role="tree"` and is labelled by `messages.directoryTree`.
-- Each row is a `treeitem` with `aria-level`, `aria-posinset`, `aria-setsize`, and `aria-selected`. Folders also have `aria-expanded`.
-- Toolbox buttons are labelled from `messages`, so custom icons can be decorative.
-- The name field is labelled "New folder name", "New file name", or "Rename".
-- Errors are announced with `role="alert"`. The delete confirmation is labelled by its title and description, and is `aria-busy` while deleting.
+- The list has `role="tree"`, labelled by `messages.directoryTree`, and `aria-multiselectable` in multiple selection mode.
+- Each row is a `treeitem` with `aria-level`, `aria-posinset`, `aria-setsize`, and `aria-selected`. Folders have `aria-expanded`, and a loading folder has `aria-busy`.
+- The accessible name of a row is the node name, so icons and badges stay decorative.
+- Toolbox buttons, the search field, and the name field are labelled from `messages`.
+- Name errors and failed requests are announced with `role="alert"`. A refused drop is announced through a polite live region. The loading row uses `role="status"`.
+- The context menu uses `role="menu"` and `menuitem`. The delete confirmation is labelled by its title and description.
 
-Translate these labels with the [`messages`](/docs/direactree/api-reference#messages) prop.
+Translate every label with the [`messages`](/docs/direactree/api-reference#messages) prop.
 
 ## Motion and contrast
 
-- With `prefers-reduced-motion: reduce`, transitions and the confirmation animation are off.
-- With `forced-colors: active` (Windows high contrast), the tree uses system colors and the selected row stays visible.
+- With `prefers-reduced-motion: reduce`, transitions and animations are off.
+- With `forced-colors: active` (Windows high contrast), the tree uses system colors, and selection, focus, search matches, and drop targets stay visible.
+- Focus outlines sit inside the row, so they are not cut off by a scrolling container.

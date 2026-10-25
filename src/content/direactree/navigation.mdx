@@ -1,0 +1,136 @@
+import {
+  ExpandedStateDemo,
+  RevealDemo,
+  SearchDemo,
+  SelectionDemo,
+} from "@/components/demos/direactree/NavigationDemos";
+
+# Search & navigation
+
+<p className="lead">Find a node, bring it into view from code, select one or many, open files, and remember which folders were open.</p>
+
+## Search
+
+`showSearch` adds a search field under the toolbox. `searchTerm` sets the term from outside instead, with `onSearchChange` reporting what was typed into the built-in field.
+
+```tsx
+<Direactree structure={structure} showSearch />
+
+// or your own field
+<input value={term} onChange={(event) => setTerm(event.target.value)} />
+<Direactree structure={structure} searchTerm={term} searchMode="highlight" />
+```
+
+<SearchDemo />
+
+- `searchMode="filter"` (default) shows only matches and the folders that hold them. `"highlight"` keeps every row and marks matches.
+- Folders that hold a match open on their own, without changing the open state you go back to when the search ends. A folder can still be closed by hand during a search.
+- The matching part of the name is wrapped in `<mark class="direactree-match">`.
+- `filterNode(node, term)` replaces the default case-insensitive name match. Wrap it in `useCallback` so large trees are not searched again on every render.
+- In the built-in field, <kbd>↓</kbd> or <kbd>Enter</kbd> moves to the first match, and <kbd>Escape</kbd> clears the term.
+- Only nodes already in `structure` are searched. Children that are not loaded yet are not.
+
+## Reveal from code
+
+Pass a `ref` to get the handle. `revealNode` opens every ancestor, scrolls the row into view, and selects it:
+
+```tsx
+const ref = useRef<DireactreeHandle>(null);
+
+<Direactree ref={ref} structure={structure} />
+
+ref.current?.revealNode("src/components/Button.tsx", { focus: true, block: "center" });
+```
+
+<RevealDemo />
+
+| Method | Use |
+| --- | --- |
+| `revealNode(id, { select?, focus?, block? })` | Open the way to a node, scroll to it, select it (default), and optionally focus it. `block` is `"nearest"` (default), `"start"`, `"center"`, or `"end"`. Returns `false` when the id is not in the tree. |
+| `expand(id)`, `collapse(id)` | Open or close one folder. |
+| `expandAll()`, `collapseAll()` | Open or close every folder. |
+| `select(id \| null)` | Select a node, opening the way to it, or clear the selection. |
+| `focus()` | Move keyboard focus to the selected row, or the first row. |
+| `getSelectedIds()`, `getExpandedIds()` | Read the current selection and open folders. |
+
+## Selection
+
+### Single selection
+
+By default one node is selected at a time. `onSelectedNodeChange` receives its `NodePath`, or `null`. Pass `selectedId` to control it; when it points into a closed folder, the folders open.
+
+```tsx
+const [selectedId, setSelectedId] = useState<string | null>(null);
+
+<Direactree
+  structure={structure}
+  selectedId={selectedId}
+  onSelectedNodeChange={(node) => setSelectedId(node?.id ?? null)}
+/>
+```
+
+### Multiple selection
+
+`selectionMode="multiple"` adds the usual desktop gestures. `onSelectionChange` receives every selected id and their paths, and `selectedIds` makes it controlled:
+
+| Gesture | Result |
+| --- | --- |
+| Click | Select only this row. |
+| <kbd>Ctrl</kbd>/<kbd>Cmd</kbd> + click, or <kbd>Ctrl</kbd>/<kbd>Cmd</kbd> + <kbd>Space</kbd> | Add or remove this row. |
+| <kbd>Shift</kbd> + click | Select the range from the last clicked row. |
+| <kbd>Shift</kbd> + <kbd>↑</kbd>/<kbd>↓</kbd>/<kbd>Home</kbd>/<kbd>End</kbd> | Extend the range. |
+| <kbd>Ctrl</kbd>/<kbd>Cmd</kbd> + <kbd>A</kbd> | Select every visible row. |
+| Click outside the tree | Clear the selection. |
+
+The built-in Rename and Delete act on the focused row. Bulk actions get the ids through [`toolboxActions`](/docs/direactree/customization#toolbox-actions), the ref handle, or `onSelectionChange`.
+
+### Opening a file
+
+`onNodeActivate(node, path)` runs on a double click and on <kbd>Enter</kbd>. On a folder it also opens or closes the folder.
+
+```tsx
+<Direactree
+  structure={structure}
+  onNodeActivate={(node) => node.type === "file" && openTab(node.id)}
+/>
+```
+
+<SelectionDemo />
+
+## Open folders
+
+Direactree remembers which folders are open. `TreeNode.isExpanded` or `defaultExpandedIds` sets the first state. `expandedIds` with `onExpandedChange` makes it controlled, for example to keep it in the URL or in storage. `isAllExpanded` keeps every folder open while it is `true`.
+
+```tsx
+const [expanded, setExpanded] = useState<string[]>(() => readSaved() ?? []);
+
+<Direactree
+  structure={structure}
+  expandedIds={expanded}
+  onExpandedChange={(ids) => {
+    setExpanded(ids);
+    save(ids);
+  }}
+/>
+```
+
+<ExpandedStateDemo />
+
+## Keyboard
+
+The tree is one tab stop. Focus lands on the selected row, or the first row.
+
+| Key | Action |
+| --- | --- |
+| <kbd>↓</kbd> / <kbd>↑</kbd> | Next or previous visible row. |
+| <kbd>→</kbd> | Open a closed folder, or move to its first child. |
+| <kbd>←</kbd> | Close an open folder, or move to the parent. |
+| <kbd>Home</kbd> / <kbd>End</kbd> | First or last visible row. |
+| <kbd>Enter</kbd> | Select, open or close a folder, and call `onNodeActivate`. |
+| <kbd>Space</kbd> | Select the row. |
+| Letters | Jump to the next row whose name starts with what you typed. Type quickly to match more letters, or press one letter again to cycle. |
+| <kbd>F2</kbd> | Rename, when allowed. |
+| <kbd>Delete</kbd> | Delete, when allowed. |
+| <kbd>Shift</kbd> + <kbd>F10</kbd> or the menu key | Open the context menu, when `contextMenu` is set. |
+
+In the name editor, <kbd>Enter</kbd> saves and <kbd>Escape</kbd> cancels. In the delete confirmation and the context menu, <kbd>Escape</kbd> closes it. In a virtualized tree, rows outside the window scroll in as the keyboard reaches them.

@@ -2,4 +2,4 @@ allowBuilds:
   sharp: true
   unrs-resolver: true
 minimumReleaseAgeExclude:
-  - direactree@0.2.0
+  - direactree@0.4.0 || 0.4.0

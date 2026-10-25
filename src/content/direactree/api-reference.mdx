@@ -19,102 +19,126 @@ import {
 
 # Props & callbacks
 
-<p className="lead">A complete reference for every Direactree prop, callback payload, default value, type, behavior rule, and common use case.</p>
+<p className="lead">Every Direactree prop, callback payload, ref method, default, and type, with a live demo next to the ones you can try.</p>
 
 ## Props overview
 
+**Data**
+
 | Prop | Type | Default | Purpose |
 | --- | --- | --- | --- |
-| `structure` | `TreeNode[]` | Required | Controlled tree rendered by the component. |
-| `className` | `string` | — | Adds a class to the component root. |
-| `style` | `React.CSSProperties` | — | Inline styles merged onto the root, after the theme `color-scheme`. |
-| `theme` | `"system" \| "light" \| "dark"` | `"system"` | Built-in color theme. |
-| `indent` | `number` | `20` | Horizontal offset between hierarchy levels. |
-| `showToolbox` | `boolean` | `true` | Shows create, rename, and delete controls. |
-| `toolboxIcons` | `ToolboxIcons` | Built-in icons | Replaces individual toolbox icons. |
-| `toolboxSticky` | `boolean` | `false` | Keeps the toolbox visible while its container scrolls. |
-| `allowDragAndDrop` | `boolean` | `true` | Enables node movement. Also needs `onNodeMove`. |
-| `isAllExpanded` | `boolean` | `false` | Keeps every folder open while `true`. |
-| `confirmDelete` | `boolean` | `false` | Asks for confirmation before `onDelete`. |
-| `messages` | `Partial<DireactreeMessages>` | English copy | Replaces built-in labels and messages. |
-| `onCreateFolder` | `(parent: NodePath \| null) => void` | — | The create-folder editor opened. |
-| `onCreateFile` | `(parent: NodePath \| null) => void` | — | The create-file editor opened. |
-| `onRename` | `(node: NodePath) => void` | — | The rename editor opened. |
-| `onSave` | `(props: SaveProps) => void \| Promise<void>` | — | A create or rename was confirmed. |
-| `onDelete` | `(node: NodePath) => void \| Promise<void>` | — | A delete was requested (and confirmed, if `confirmDelete`). |
-| `onNodeMove` | `(node: TreeNode, target: TreeNode) => void \| Promise<void>` | — | A valid drag-and-drop move was requested. |
-| `onSelectedNodeChange` | `(node: NodePath \| null) => void` | — | Selection changed. |
-| `onActionError` | `(error: unknown, action: DireactreeMutation) => void` | — | A save, delete, or move threw or rejected. |
+| `structure` | `TreeNode<T>[]` | Required | The controlled tree. |
+
+**Look**
+
+| Prop | Type | Default | Purpose |
+| --- | --- | --- | --- |
+| `theme` | `"system" \| "light" \| "dark"` | `"system"` | Color theme. |
+| `appearance` | `"plain" \| "card"` | `"plain"` | Plain blends into the page; card adds border, padding, and shadow. |
+| `density` | `"comfortable" \| "compact"` | `"comfortable"` | 28px or 22px rows. |
+| `indent` | `number` | `20` | Space per level, 8 to 50. |
+| `className` | `string` | — | Class on the root. |
+| `classNames` | `Partial<Record<DireactreeSlot, string>>` | — | Classes on each part. [Styling](/docs/direactree/theming#classnames) |
+| `style` | `DireactreeStyle` | — | Inline styles and `--direactree-*` tokens on the root. |
+| `messages` | `Partial<DireactreeMessages>` | English | Every label and message. |
+
+**Toolbox and editing**
+
+| Prop | Type | Default | Purpose |
+| --- | --- | --- | --- |
+| `showToolbox` | `boolean` | `true` | Show the toolbox. |
+| `toolboxSticky` | `boolean` | `false` | Keep the toolbox visible while the container scrolls. |
+| `toolboxIcons` | `ToolboxIcons` | SVG icons | Replace built-in icons. |
+| `toolboxActions` | `ToolboxAction[]` | — | Extra toolbox buttons. [Guide](/docs/direactree/customization#toolbox-actions) |
+| `confirmDelete` | `boolean` | `false` | Ask before `onDelete`. |
+| `nameRules` | `Partial<NameRules>` | See guide | Built-in name checks. [Guide](/docs/direactree/validation#namerules) |
+| `validateName` | `false \| (name, context) => string \| null` | — | Your own name check. [Guide](/docs/direactree/validation#validatename) |
+| `getNodePermissions` | `(node, path) => Partial<NodePermissions>` | — | Per-node permissions. [Guide](/docs/direactree/validation#permissions) |
+| `contextMenu` | `boolean \| (node, defaults, path) => ContextMenuEntry[]` | `false` | Right-click menu. [Guide](/docs/direactree/customization#context-menu) |
+
+**Drag and drop**
+
+| Prop | Type | Default | Purpose |
+| --- | --- | --- | --- |
+| `allowDragAndDrop` | `boolean` | `true` | Allow dragging. Also needs `onNodeMove`. |
+| `allowReorder` | `boolean` | `false` | Allow drops before and after rows. |
+
+**Selection, folders, search**
+
+| Prop | Type | Default | Purpose |
+| --- | --- | --- | --- |
+| `selectionMode` | `"single" \| "multiple"` | `"single"` | Multiple adds Ctrl/Cmd, Shift, and Ctrl/Cmd+A. |
+| `selectedId` | `string \| null` | — | Controlled single selection. |
+| `selectedIds` | `string[]` | — | Controlled multiple selection. |
+| `isAllExpanded` | `boolean` | `false` | Keep every folder open. |
+| `expandedIds` | `string[]` | — | Controlled open folders. |
+| `defaultExpandedIds` | `string[]` | From `isExpanded` | First open folders. |
+| `showSearch` | `boolean` | `false` | Built-in search field. |
+| `searchTerm` | `string` | — | Controlled search term. |
+| `searchMode` | `"filter" \| "highlight"` | `"filter"` | Hide or mark non-matching rows. |
+| `filterNode` | `(node, term) => boolean` | Name match | Custom match. |
+
+**Rows and large trees**
+
+| Prop | Type | Default | Purpose |
+| --- | --- | --- | --- |
+| `renderIcon` | `(node, state) => ReactNode` | — | Before the name. |
+| `renderLabel` | `(node, state) => ReactNode` | — | Replaces the name. |
+| `renderBadge` | `(node, state) => ReactNode` | — | After the name. |
+| `getRowClassName` | `(node, state) => string \| undefined` | — | Class on a row. |
+| `virtualized` | `boolean \| { rowHeight?, overscan?, height? }` | `false` | Render only rows in view. [Guide](/docs/direactree/large-trees#virtualization) |
+| `onLoadChildren` | `(node) => void \| Promise` | — | Load a folder's children on first open. [Guide](/docs/direactree/large-trees#lazy-loading) |
+
+**Callbacks**
+
+| Prop | Type | Purpose |
+| --- | --- | --- |
+| `onSave` | `(props: SaveProps) => void \| Promise<void>` | A create or rename was confirmed. |
+| `onDelete` | `(node: NodePath) => void \| Promise<void>` | A delete was requested and, with `confirmDelete`, confirmed. |
+| `onNodeMove` | `(node, target, info: MoveInfo) => void \| Promise<void>` | A valid drop. |
+| `onNodeActivate` | `(node, path) => void` | Double click or Enter. |
+| `onSelectedNodeChange` | `(node: NodePath \| null) => void` | The focused selection changed. |
+| `onSelectionChange` | `(ids: string[], nodes: NodePath[]) => void` | The multiple selection changed. |
+| `onExpandedChange` | `(ids: string[]) => void` | A folder opened or closed. |
+| `onSearchChange` | `(term: string) => void` | The built-in search field changed. |
+| `onCreateFolder`, `onCreateFile` | `(parent: NodePath \| null) => void` | The create editor opened. |
+| `onRename` | `(node: NodePath) => void` | The rename editor opened. |
+| `onActionError` | `(error, action: DireactreeMutation) => void` | A save, delete, move, or load failed. |
 
 <Callout title="Handlers enable the controls">
-  The toolbox only offers what your application can handle. Create and rename stay disabled without `onSave`, delete stays disabled without `onDelete`, and nodes cannot be dragged without `onNodeMove`.
+  The toolbox offers only what your application can handle. Create and rename need `onSave`, delete needs `onDelete`, and dragging needs `onNodeMove`. Permissions can turn single actions off on top of that.
 </Callout>
 
 ## structure
 
-<ReferenceMeta type="TreeNode[]" required />
+<ReferenceMeta type="TreeNode<T>[]" required />
 
-`structure` is the hierarchy rendered by Direactree, and the only source of truth for it. Root items are array entries; nested items live in a folder's `children` array.
+`structure` is the hierarchy Direactree renders and the only source of truth for it. Root items are array entries; nested items live in a folder's `children`.
 
 ```ts
-interface TreeNode {
+interface TreeNode<T = unknown> {
   /** Must be unique across the whole tree. */
   id: string;
   name: string;
   type: "file" | "folder";
-  children?: TreeNode[];
-  /** Initial open state, read once when the tree mounts. */
+  children?: TreeNode<T>[];
+  /** First open state, read once when the tree mounts. */
   isExpanded?: boolean;
+  /** Not-yet-loaded children, used with onLoadChildren. */
+  hasChildren?: boolean;
+  /** Turns every permission off. */
+  locked?: boolean;
+  /** Per-node permissions. A missing key counts as allowed. */
+  permissions?: Partial<NodePermissions>;
+  /** Your own data, passed through untouched. */
+  data?: T;
 }
 ```
 
-Example structure:
+`children` is optional because files have none and empty folders may leave it out. The component never copies or mutates this array: it only reports what the user asked for, and changes when you pass a new `structure`. When a node leaves `structure`, its selection and any editor open on it are cleared.
 
-```ts
-const structure: TreeNode[] = [
-  {
-    id: "0",
-    name: "C:/",
-    type: "folder",
-    children: [
-      {
-        id: "1",
-        name: "Users",
-        type: "folder",
-        children: [
-          {
-            id: "2",
-            name: "John Doe",
-            type: "folder",
-            children: [
-              {
-                id: "3",
-                name: "Documents",
-                type: "folder",
-                children: [
-                  { id: "4", name: "sample.tsx", type: "file" },
-                ],
-              },
-              { id: "5", name: "logs.txt", type: "file" },
-            ],
-          },
-        ],
-      },
-    ],
-  },
-];
-
-<Direactree structure={structure} />;
-```
-
-`children` is optional because files do not contain nodes and empty folders may omit it. Supplying `children: []` for folders is also valid.
-
-The component never copies or mutates this array. Creating, renaming, deleting, or moving a node only calls your handler. The tree changes when you pass a new `structure`. Direactree keeps UI state only: selection, which folders are open, the open editor or delete confirmation, and pending and error state.
-
-`isExpanded` is read once, when the tree mounts. After that the user opens and closes folders and Direactree remembers it. When a node leaves `structure`, its selection and any editor open on it are cleared.
-
-<Callout tone="warning" title="Use stable, unique IDs">
-  Selection, editing, and moves identify nodes by ID. IDs must be unique across the whole tree, not only among siblings. Avoid array indexes when nodes may move.
+<Callout tone="warning" title="Use stable, unique ids">
+  Selection, editing, and moves identify nodes by id. Ids must be unique across the whole tree, not only among siblings. Avoid array indexes when nodes may move.
 </Callout>
 
 <StructureDemo />
@@ -125,18 +149,11 @@ The component never copies or mutates this array. Creating, renaming, deleting, 
 
 <ReferenceMeta type="number" defaultValue="20" />
 
-Controls the horizontal indentation between tree levels. The accepted range is `8`–`50`:
-
-- Values below `8` are normalized to `8`.
-- Values above `50` are normalized to `50`.
-
-A console warning is logged when a value is normalized.
+The space added per level, from `8` to `50`. Values outside the range are clamped, with a console warning. It sets the `--direactree-indent` token.
 
 ```tsx
 <Direactree structure={structure} indent={28} />
 ```
-
-Use a smaller value in narrow sidebars and a larger value when hierarchy depth should be visually prominent.
 
 <IndentDemo />
 
@@ -144,32 +161,23 @@ Use a smaller value in narrow sidebars and a larger value when hierarchy depth s
 
 <ReferenceMeta type="boolean" defaultValue="false" />
 
-While `true`, every folder is open, including folders added to `structure` later, and folders cannot be collapsed. Changing it from `true` to `false` closes every folder.
-
-```tsx
-const [expandAll, setExpandAll] = useState(false);
-
-<button onClick={() => setExpandAll((value) => !value)}>
-  {expandAll ? "Collapse all" : "Expand all"}
-</button>
-<Direactree structure={structure} isAllExpanded={expandAll} />
-```
-
-Unlike in 0.1, the prop can change at any time. There is no need to remount the tree with a `key`.
+While `true`, every folder is open, including folders added later, and folders cannot be closed. Changing it to `false` closes every folder. For finer control use [`expandedIds`](/docs/direactree/navigation#open-folders).
 
 <ExpandedDemo />
 
-### allowDragAndDrop
+### allowDragAndDrop and allowReorder
 
-<ReferenceMeta type="boolean" defaultValue="true" />
+<ReferenceMeta type="boolean" defaultValue="true / false" />
 
-Enables or disables moving files and folders by dragging. Dragging also needs an `onNodeMove` handler, and is paused while a save, delete, or move is pending.
+`allowDragAndDrop` turns dragging on or off. Dragging also needs `onNodeMove`, follows the `move` and `drop` permissions, and pauses while a request is pending.
+
+`allowReorder` lets a drop land before or after a row as well as inside a folder: the top quarter of a folder row means before, the bottom quarter after, and the middle inside. A file row splits in half. A line or a dashed box shows the result.
 
 ```tsx
-<Direactree structure={structure} allowDragAndDrop={false} />
-```
+const tree = useDireactree(structure);
 
-Set it to `false` for read-only explorers or when your backend does not support re-parenting. This setting does not hide the toolbox; use `showToolbox` separately.
+<Direactree structure={tree.structure} onNodeMove={tree.move} allowReorder />
+```
 
 <DragAndDropDemo />
 
@@ -177,21 +185,15 @@ Set it to `false` for read-only explorers or when your backend does not support 
 
 <ReferenceMeta type="boolean" defaultValue="true" />
 
-Controls the built-in create-folder, create-file, rename, and delete buttons.
-
-```tsx
-<Direactree structure={structure} showToolbox={false} />
-```
-
-Each button is enabled only when it can do something:
+Shows the create-folder, create-file, rename, and delete buttons. Each is enabled only when it can do something:
 
 | Button | Enabled when |
 | --- | --- |
-| Create folder, Create file | `onSave` is set, and the selection is a folder or nothing. |
-| Rename | `onSave` is set and a node is selected. |
-| Delete | `onDelete` is set and a node is selected. |
+| Create folder, Create file | `onSave` is set, and nothing or a folder with `createChild` is selected. |
+| Rename | `onSave` is set and the selected node allows `rename`. |
+| Delete | `onDelete` is set and the selected node allows `delete`. |
 
-All four are disabled while a request is pending. To make a tree completely read-only, combine `showToolbox={false}` and `allowDragAndDrop={false}`, or omit the handlers.
+All are disabled while a request is pending. A read-only tree needs no handlers at all.
 
 <ToolboxVisibilityDemo />
 
@@ -199,19 +201,7 @@ All four are disabled while a request is pending. To make a tree completely read
 
 <ReferenceMeta type="boolean" defaultValue="false" />
 
-Keeps the toolbox visible while the tree's scroll container moves.
-
-```tsx
-<div style={{ height: 320, overflow: "auto" }}>
-  <Direactree
-    structure={structure}
-    toolboxSticky
-    isAllExpanded
-  />
-</div>
-```
-
-Use it for tall trees inside a height-constrained panel. It has no visible effect when the surrounding content does not scroll.
+Keeps the toolbox at the top while the tree's scroll container moves. Use it for tall trees in a fixed-height panel.
 
 <StickyToolboxDemo />
 
@@ -219,7 +209,7 @@ Use it for tall trees inside a height-constrained panel. It has no visible effec
 
 <ReferenceMeta type="ToolboxIcons" />
 
-Replaces any built-in toolbox icon with a `ReactNode`. Every field is optional, so icons can be changed individually.
+Replaces any built-in icon with a `ReactNode`. The defaults are SVG icons that follow the text color. Each button keeps its accessible name and tooltip from `messages`, so your icons can be decorative.
 
 ```ts
 interface ToolboxIcons {
@@ -230,37 +220,17 @@ interface ToolboxIcons {
 }
 ```
 
-```tsx
-const toolboxIcons = {
-  createFolder: <FolderPlusIcon />,
-  createFile: <FilePlusIcon />,
-  rename: <EditIcon />,
-  delete: <TrashIcon />,
-};
-
-<Direactree
-  structure={structure}
-  toolboxIcons={toolboxIcons}
-/>;
-```
-
-Each button already has an accessible name and tooltip from `messages`, so icons can be decorative.
-
 <ToolboxIconsDemo />
 
 ### confirmDelete
 
 <ReferenceMeta type="boolean" defaultValue="false" />
 
-When `true`, the delete button opens a confirmation popover under the selected row. `onDelete` is called only after the user confirms.
+The delete action opens a confirmation under the row, and `onDelete` runs only after the user confirms.
 
-```tsx
-<Direactree structure={structure} confirmDelete onDelete={handleDelete} />
-```
-
-- The popover floats over the tree and does not move the layout. It opens above the row when there is no room below.
-- **Cancel** gets focus when it opens. Escape or Cancel closes it, and focus returns to the delete button.
-- If `onDelete` returns a Promise, both buttons stay disabled and the confirm button reads "Deleting…" until it settles. A rejection keeps the popover open with the error message.
+- The popover floats over the tree and opens above the row when there is no room below.
+- **Cancel** gets focus. Escape or Cancel closes it, and focus returns to the delete button.
+- While a returned Promise is pending, both buttons are disabled and the confirm button reads "Deleting…". A rejection keeps it open with the error.
 
 <ConfirmDeleteDemo />
 
@@ -268,45 +238,33 @@ When `true`, the delete button opens a confirmation popover under the selected r
 
 <ReferenceMeta type="string" />
 
-Adds a custom class name to the Direactree root element.
-
-```tsx
-<Direactree structure={structure} className="project-explorer" />
-```
-
-Use it for spacing, sizing, and placement in your own layout. To change colors, set the [CSS variables](/docs/direactree/theming#css-variables) on that class.
+A class on the root element, for layout or for setting [tokens](/docs/direactree/theming#css-tokens). For classes on inner parts use `classNames`.
 
 <ClassNameDemo />
 
 ## Theme and copy
 
-### theme
+### theme, appearance, and density
 
-<ReferenceMeta type={'"system" | "light" | "dark"'} defaultValue='"system"' />
+<ReferenceMeta type={'"system" | "light" | "dark"  ·  "plain" | "card"  ·  "comfortable" | "compact"'} defaultValue={'"system"  ·  "plain"  ·  "comfortable"'} />
 
-Chooses the built-in palette. `"light"` and `"dark"` stay fixed. `"system"` follows the user's `prefers-color-scheme` setting.
-
-```tsx
-<Direactree structure={structure} theme="dark" />
-```
-
-The root gets a `data-direactree-theme` attribute and a matching `color-scheme`. See [Theming & accessibility](/docs/direactree/theming) for the CSS variables.
+The root gets `data-direactree-theme`, `data-appearance`, `data-density`, and a `color-scheme` that matches the theme. See [Styling](/docs/direactree/theming) for tokens and data attributes.
 
 <ThemeDemo />
 
 ### style
 
-<ReferenceMeta type="React.CSSProperties" />
+<ReferenceMeta type="DireactreeStyle" />
 
-Inline styles for the root element. They are applied after the theme's `color-scheme`, so they can override it or set CSS variables on this one tree.
+Inline styles on the root, applied after the theme's `color-scheme`. The type accepts `--direactree-*` tokens without a cast. Use `light-dark()` to give each theme its own color.
 
 ```tsx
 <Direactree
   structure={structure}
   style={{
-    "--direactree-selected": "#fde68a",
+    "--direactree-selected": "light-dark(#fde68a, #78350f)",
     "--direactree-focus": "#b45309",
-  } as React.CSSProperties}
+  }}
 />
 ```
 
@@ -314,16 +272,12 @@ Inline styles for the root element. They are applied after the theme's `color-sc
 
 <ReferenceMeta type="Partial<DireactreeMessages>" />
 
-Replaces the built-in English copy: button labels, tooltips, field labels, the delete confirmation, and the fallback error. Omitted keys keep the defaults. In `deleteTitle`, `{name}` is replaced with the node name.
+Replaces the built-in English copy. Omitted keys keep the defaults. Placeholders in braces are filled in.
 
 ```tsx
 <Direactree
   structure={structure}
-  messages={{
-    delete: "Sil",
-    cancel: "Vazgeç",
-    deleteTitle: "{name} silinsin mi?",
-  }}
+  messages={{ delete: "Sil", cancel: "Vazgeç", deleteTitle: "{name} silinsin mi?" }}
 />
 ```
 
@@ -345,6 +299,19 @@ Replaces the built-in English copy: button labels, tooltips, field labels, the d
 | `deleting` | Deleting… |
 | `confirmDelete` | Confirm delete |
 | `actionFailed` | Something went wrong. |
+| `nameEmpty` | Enter a name. |
+| `nameInvalidChars` | A name cannot contain “\{char\}”. |
+| `nameReserved` | “\{name\}” cannot be used as a name. |
+| `nameTooLong` | A name can be at most \{max\} characters. |
+| `nameDuplicate` | “\{name\}” already exists in this folder. |
+| `moveConflict` | “\{name\}” already exists in \{target\}. |
+| `search` | Search |
+| `searchPlaceholder` | Search… |
+| `noResults` | No matching items. |
+| `loading` | Loading… |
+| `loadFailed` | Could not load this folder. |
+| `retry` | Retry |
+| `contextMenu` | Actions for \{name\} |
 
 The defaults are exported as `defaultDireactreeMessages`.
 
@@ -352,9 +319,9 @@ The defaults are exported as `defaultDireactreeMessages`.
 
 ## Event callbacks
 
-Callbacks report what the user did or asked for. Your application decides whether to update state, call an API, or reject the request.
+Callbacks report what the user did or asked for. Your application decides whether to update state, call an API, or refuse.
 
-`NodePath` is used by selection and toolbox callbacks:
+`NodePath` describes a node and its ancestors through `parent`. A root node has `parent: null`.
 
 ```ts
 type NodePath = {
@@ -365,50 +332,44 @@ type NodePath = {
 };
 ```
 
-Unlike `TreeNode`, `NodePath` describes ancestry through its recursive `parent` field. A root node has `parent: null`.
-
 ### onSelectedNodeChange
 
 <ReferenceMeta type="(node: NodePath | null) => void" />
 
-Called when the selected node changes, or when selection becomes empty. It is also called when the selected node is renamed or moved, because its path changed.
+Called when the selected node changes or the selection becomes empty, and again when the selected node is renamed or moved, because its path changed. The selection clears when the user clicks outside the tree or the node leaves `structure`. When a folder closes over the selected node, selection moves to that folder.
 
-```tsx
-const [selectedNode, setSelectedNode] = useState<NodePath | null>(null);
-
-<Direactree
-  structure={structure}
-  onSelectedNodeChange={setSelectedNode}
-/>;
-```
-
-Selection is cleared, with `null`, when the user clicks outside the tree or the node is removed from `structure`. If the selected node is hidden because a folder above it closed, selection moves to that folder.
+In multiple selection mode it reports the focused row. `onSelectionChange(ids, nodes)` reports every selected id. See [Selection](/docs/direactree/navigation#selection).
 
 <SelectionCallbackDemo />
 
+### onNodeActivate
+
+<ReferenceMeta type="(node: TreeNode<T>, path: NodePath) => void" />
+
+Called on a double click and on <kbd>Enter</kbd>. On a folder, the folder also opens or closes. Use it to open a file.
+
 ### onNodeMove
 
-<ReferenceMeta type="(sourceNode: TreeNode, targetNode: TreeNode) => void | Promise<void>" />
+<ReferenceMeta type="(node: TreeNode<T>, target: TreeNode<T>, info: MoveInfo) => void | Promise<void>" />
 
-Called when a user drops a node onto a valid target folder. The first argument is the moved node and the second is its destination. Direactree does not reorder the tree; update `structure` to apply the move.
+Called when a node is dropped on a valid place. `target` is the folder for an `inside` drop, or the row the node lands next to for `before` and `after`. `info` says exactly where it goes:
 
-```tsx
-async function handleNodeMove(source: TreeNode, target: TreeNode) {
-  await api.move(source.id, target.id);
-  setStructure(await api.fetchTree());
+```ts
+interface MoveInfo {
+  position: "inside" | "before" | "after";
+  parentId: string | null; // the new folder, null for the root
+  index: number;           // among the new folder's children, not counting the moved node
 }
-
-<Direactree structure={structure} onNodeMove={handleNodeMove} />;
 ```
 
-The callback is **not called** when:
+```tsx
+async function handleNodeMove(node: TreeNode, target: TreeNode, info: MoveInfo) {
+  await api.move(node.id, info.parentId, info.index);
+  tree.move(node, target, info);
+}
+```
 
-- The source is dropped onto itself.
-- A folder is dropped into one of its own descendants.
-- The destination is a file.
-- The destination is already the source's parent.
-
-The target folder opens on drop. While a returned Promise is pending, other drags, saves, and deletes are blocked.
+It is **not called** when the node is dropped on itself or into its own descendant, on a file without `allowReorder`, where it already is, where a node with the same name exists, or where permissions forbid it. The destination folder opens on drop.
 
 <NodeMoveCallbackDemo />
 
@@ -423,21 +384,7 @@ onRename?: (node: NodePath) => void;
 onDelete?: (node: NodePath) => void | Promise<void>;
 ```
 
-- `onCreateFolder` and `onCreateFile` fire when the name editor opens, with the selected parent folder. The folder opens so the editor is visible.
-- `onRename` fires when the rename editor opens, with the node being renamed.
-- `onDelete` receives the node to delete. With `confirmDelete`, it fires only after the user confirms.
-
-The first three are notifications only. The actual create or rename request arrives through `onSave`. If no node is selected, the create callbacks receive `null`, which means the root.
-
-```tsx
-<Direactree
-  structure={structure}
-  onCreateFolder={(parent) => console.log("Editor open under", parent?.id ?? "root")}
-  onRename={(node) => console.log("Renaming", node.id)}
-  onSave={handleSave}
-  onDelete={handleDelete}
-/>
-```
+`onCreateFolder`, `onCreateFile`, and `onRename` fire when the name editor opens; the parent folder opens so the editor is visible. The create or rename itself arrives in `onSave`. `null` means the root. `onDelete` receives the node to delete; with `confirmDelete`, only after the user confirms.
 
 <ToolboxCallbacksDemo />
 
@@ -445,143 +392,165 @@ The first three are notifications only. The actual create or rename request arri
 
 <ReferenceMeta type="(saveProps: SaveProps) => void | Promise<void>" />
 
-Called when the user confirms a name in the editor, with the Save button or Enter. Escape cancels. Save stays disabled while the name is empty, or unchanged during a rename.
+Called when the user confirms a valid name with Save or <kbd>Enter</kbd>. Save stays disabled while the name is empty, unchanged, or fails a [name check](/docs/direactree/validation#name-checks).
 
 ```ts
 interface SaveProps {
-  newName: string;
-  selectedNode: NodePath | null;
+  newName: string;              // trimmed
+  selectedNode: NodePath | null; // the parent for a create, the node for a rename
   actionType: "create" | "edit";
   createType?: "folder" | "file";
 }
 ```
 
-| Field | Meaning |
-| --- | --- |
-| `newName` | The value confirmed by the user. |
-| `selectedNode` | The parent for a create (`null` for the root), or the node being renamed. |
-| `actionType` | `create` for a new node, `edit` for a rename. |
-| `createType` | `folder` or `file` during creation; omitted for editing. |
-
-```tsx
-function handleSave(change: SaveProps) {
-  setStructure((current) => applySave(current, change));
-}
-
-<Direactree structure={structure} onSave={handleSave} />;
-```
-
-`applySave` is your own code; the [interactive example](/docs/direactree/examples#implementation-notes) has one. A synchronous handler closes the editor right away.
+`useDireactree().save` applies it directly, and `applySave(nodes, props)` does the same as a pure function.
 
 <SaveCallbackDemo />
 
+### onExpandedChange and onSearchChange
+
+<ReferenceMeta type="(ids: string[]) => void  ·  (term: string) => void" />
+
+`onExpandedChange` receives every open folder id whenever one opens or closes, including from the ref handle. `onSearchChange` receives what is typed into the built-in search field.
+
+### onLoadChildren
+
+<ReferenceMeta type="(node: TreeNode<T>) => void | Promise<unknown>" />
+
+Called once for a folder with `hasChildren: true` and no `children`, the first time it is open. Return the Promise so the loading row stays until it settles. See [Lazy loading](/docs/direactree/large-trees#lazy-loading).
+
 ### Async callbacks and errors
 
-`onSave`, `onDelete`, and `onNodeMove` may return a Promise. Direactree then waits for it:
+`onSave`, `onDelete`, `onNodeMove`, and `onLoadChildren` may return a Promise. Direactree then waits:
 
-- While it is pending, the toolbox, the editor, and the confirmation buttons are disabled, and dragging is paused. Only one request runs at a time.
+- While it is pending, the toolbox, editor, and confirmation buttons are disabled and dragging pauses. Only one save, delete, or move runs at a time.
 - When it resolves, the editor or confirmation closes.
-- When it rejects, or the handler throws, the editor or confirmation stays open with the typed name, and shows the error's `message` (or `messages.actionFailed`). `onActionError` is called with the error and the action.
-
-```ts
-type DireactreeMutation = "save" | "delete" | "move";
-
-onActionError?: (error: unknown, action: DireactreeMutation) => void;
-```
+- When it rejects or the handler throws, the editor or confirmation stays open with the typed name and the error's `message` (or `messages.actionFailed`). A failed load shows the error and Retry in the folder.
+- `onActionError(error, action)` is called with `"save"`, `"delete"`, `"move"`, or `"load"`.
 
 ```tsx
-async function handleSave(change: SaveProps) {
-  const response = await fetch("/api/tree", {
-    method: change.actionType === "create" ? "POST" : "PATCH",
-    body: JSON.stringify(change),
-  });
-  if (!response.ok) throw new Error("The name could not be saved.");
-  setStructure(await response.json());
-}
-
 <Direactree
-  structure={structure}
+  structure={tree.structure}
   onSave={handleSave}
   onActionError={(error, action) => reportError(action, error)}
-/>;
+/>
 ```
 
-A failed move has no editor to show the error in, so use `onActionError` to tell the user.
+A failed move has no editor to show its error in, so use `onActionError` to tell the user.
 
 <AsyncCallbacksDemo />
 
-## Complete types
+## Ref handle
 
-These are the public shapes used by the component:
+Pass a `ref` to call these methods. See [Reveal from code](/docs/direactree/navigation#reveal-from-code) for a live demo.
 
 ```ts
-interface TreeNode {
-  id: string;
-  name: string;
-  type: "file" | "folder";
-  children?: TreeNode[];
-  isExpanded?: boolean;
+interface DireactreeHandle {
+  revealNode(id: string, options?: { select?: boolean; focus?: boolean; block?: "start" | "center" | "end" | "nearest" }): boolean;
+  expand(id: string): void;
+  collapse(id: string): void;
+  expandAll(): void;
+  collapseAll(): void;
+  select(id: string | null): void;
+  focus(): void;
+  getSelectedIds(): string[];
+  getExpandedIds(): string[];
+}
+```
+
+```tsx
+const ref = useRef<DireactreeHandle>(null);
+<Direactree ref={ref} structure={structure} />;
+```
+
+## Complete types
+
+```ts
+type NodeType = "file" | "folder";
+
+interface NodePermissions {
+  rename: boolean;
+  delete: boolean;
+  move: boolean;
+  drop: boolean;
+  createChild: boolean;
 }
 
-type NodePath = {
-  name: string;
+interface ToolboxAction {
   id: string;
-  type: "file" | "folder";
-  parent: NodePath | null;
-};
-
-interface SaveProps {
-  newName: string;
-  selectedNode: NodePath | null;
-  actionType: "create" | "edit";
-  createType?: "folder" | "file";
+  label: string;
+  icon: React.ReactNode;
+  disabled?: boolean | ((selectedNode: NodePath | null, selectedIds: string[]) => boolean);
+  onClick: (selectedNode: NodePath | null, selectedIds: string[]) => void;
 }
 
-interface ToolboxIcons {
-  createFolder?: React.ReactNode;
-  createFile?: React.ReactNode;
-  rename?: React.ReactNode;
-  delete?: React.ReactNode;
+type ContextMenuEntry<T = unknown> =
+  | {
+      id: string;
+      label: React.ReactNode;
+      icon?: React.ReactNode;
+      disabled?: boolean;
+      danger?: boolean;
+      onSelect: (node: TreeNode<T>, path: NodePath) => void;
+    }
+  | "separator";
+
+interface RowRenderState {
+  expanded: boolean;
+  selected: boolean;
+  depth: number;
+}
+
+interface LabelRenderState extends RowRenderState {
+  term: string;
+  highlighted: React.ReactNode;
+}
+
+interface VirtualizedOptions {
+  rowHeight?: number;
+  overscan?: number;
+  height?: number | string;
 }
 
 type DireactreeTheme = "system" | "light" | "dark";
+type DireactreeAppearance = "plain" | "card";
+type DireactreeDensity = "comfortable" | "compact";
+type DireactreeMutation = "save" | "delete" | "move" | "load";
+type DropPosition = "inside" | "before" | "after";
+type DireactreeStyle = React.CSSProperties & { [token: `--direactree-${string}`]: string | number | undefined };
 
-type DireactreeMutation = "save" | "delete" | "move";
-
-interface DireactreeMessages {
-  directoryTree: string;
-  createFolder: string;
-  createFile: string;
-  rename: string;
-  delete: string;
-  save: string;
-  cancel: string;
-  newFolderName: string;
-  newFileName: string;
-  newItemName: string;
-  deleteTitle: string;
-  deleteFolderDescription: string;
-  deleteFileDescription: string;
-  deleting: string;
-  confirmDelete: string;
-  actionFailed: string;
-}
+type DireactreeSlot =
+  | "root" | "toolbox" | "toolboxButton" | "search" | "viewport" | "list"
+  | "row" | "item" | "toggle" | "icon" | "label" | "badge"
+  | "editor" | "menu" | "menuItem" | "confirm";
 ```
 
-Import them from the package. `defaultDireactreeMessages` is a value export:
+`TreeNode`, `NodePath`, `SaveProps`, `MoveInfo`, `NameRules`, `NameValidationContext`, `DireactreeMessages`, and `DireactreeHandle` are shown above in their sections.
+
+## Exports
 
 ```ts
-import Direactree, { defaultDireactreeMessages } from "direactree";
+import Direactree, {
+  // hook
+  useDireactree,
+  // tree helpers
+  applySave, insertNode, renameNode, updateNode, removeNode, moveNode, setChildren,
+  sortChildren, compareFoldersFirst, findNode, findNodePath, locateNode, getAncestorIds,
+  resolveDrop, isMoveable, createNodeId,
+  // names
+  validateName, hasNameConflict, defaultNameRules,
+  // copy
+  defaultDireactreeMessages,
+} from "direactree";
+
 import type {
-  DireactreeMessages,
-  DireactreeMutation,
-  DireactreeProps,
-  DireactreeTheme,
-  NodePath,
-  SaveProps,
-  ToolboxIcons,
-  TreeNode,
+  TreeNode, NodePath, SaveProps, MoveInfo, DropPosition, NodePermissions,
+  DireactreeProps, DireactreeHandle, DireactreeMessages, DireactreeMutation,
+  DireactreeTheme, DireactreeAppearance, DireactreeDensity, DireactreeSlot, DireactreeStyle,
+  ToolboxIcons, ToolboxAction, ContextMenuEntry, ContextMenuItem, RowRenderState,
+  LabelRenderState, VirtualizedOptions, RevealOptions, NameRules, NameValidationContext,
+  UseDireactreeOptions, UseDireactreeResult, SaveOverrides,
 } from "direactree";
 ```
 
-`direactree/next` exports the same names.
+`direactree/next` exports the same names with the `"use client"` directive. The stylesheets are `direactree/direactree.css` and `direactree/direactree.layer.css`.

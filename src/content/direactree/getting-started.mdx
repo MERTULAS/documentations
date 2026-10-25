@@ -1,53 +1,60 @@
+import { HookBasicsDemo } from "@/components/demos/direactree/HookDemos";
+
 # Getting started
 
-<p className="lead">Install Direactree, select the correct framework entry point, define a typed structure, and render your first tree.</p>
+<p className="lead">Install Direactree, add its stylesheet, pick the right entry point, and render an editable tree in a few lines.</p>
 
 ## Installation
 
-Install the package from npm:
-
 <InstallCommand command="npm install direactree" />
 
-Direactree publishes its TypeScript definitions with the package. You do not need a separate `@types` dependency. It works with React 17 and newer.
-
-### Stylesheet
-
-The component adds its stylesheet from JavaScript. Import it as well when the page should be styled before JavaScript runs, such as with server rendering or static export, or when a Content-Security-Policy blocks styles added by scripts:
-
-```tsx
-import "direactree/direactree.css";
-```
-
-In a Next.js App Router project, put this import in the root `layout.tsx`.
+TypeScript definitions ship with the package, so no `@types` package is needed. Direactree works with React 17 and newer, and has no other dependencies.
 
 Useful links:
 
 - [Direactree source repository](https://github.com/MERTULAS/direactree)
 - [Direactree package on npm](https://www.npmjs.com/package/direactree)
+- [Changelog](https://github.com/MERTULAS/direactree/blob/main/CHANGELOG.md)
+
+## Stylesheet
+
+Import the stylesheet once. Since 0.4 the JavaScript does not add any styles, so this line is required:
+
+```tsx
+import "direactree/direactree.css";
+```
+
+In a Next.js App Router project, put it in the root `layout.tsx`. It also means the tree is styled before JavaScript runs and works under a strict Content-Security-Policy.
+
+There is a second file with the same rules inside a CSS cascade layer:
+
+```tsx
+import "direactree/direactree.layer.css";
+```
+
+With it, any CSS in your app that is not in a layer wins over the tree's rules, in any order, without `!important`. Skip both files to style the tree from scratch. See [Styling](/docs/direactree/theming).
 
 ## Framework imports
 
 ### React applications
 
-For a client-rendered React application, use the default entry point:
-
 ```tsx
-import Direactree from "direactree";
+import Direactree, { useDireactree } from "direactree";
 import type { TreeNode } from "direactree";
 ```
 
 ### Next.js 13 and newer
 
-Next.js App Router components are Server Components by default, while Direactree is interactive and must run on the client. There are two supported approaches.
+App Router components are Server Components by default, and Direactree must run on the client.
 
-**1. Use the dedicated Next.js entry point—recommended:**
+**1. Use the Next.js entry point (recommended).** It carries the `"use client"` directive:
 
 ```tsx
-import Direactree from "direactree/next";
+import Direactree, { useDireactree } from "direactree/next";
 import type { TreeNode } from "direactree";
 ```
 
-**2. Use the default entry inside your own Client Component:**
+**2. Or use the default entry inside your own Client Component:**
 
 ```tsx
 "use client";
@@ -55,13 +62,13 @@ import type { TreeNode } from "direactree";
 import Direactree from "direactree";
 ```
 
-<Callout tone="warning" title="Keep the client boundary focused">
-  Put the tree in a small Client Component instead of marking an entire page or layout with `"use client"`. The surrounding content can remain server-rendered.
+<Callout tone="warning" title="Keep the client boundary small">
+  Put the tree in a small Client Component instead of marking a whole page or layout with `"use client"`. The content around it can stay server-rendered.
 </Callout>
 
 ## Your first tree
 
-The `structure` prop accepts an array of `TreeNode` objects. Every node needs a stable `id`, a visible `name`, and a `type`. Only folders should contain `children`.
+`structure` takes an array of `TreeNode` objects. Each node needs a stable `id`, a `name`, and a `type`. Only folders have `children`.
 
 ```tsx
 "use client";
@@ -74,78 +81,67 @@ const structure: TreeNode[] = [
     id: "root",
     name: "Project",
     type: "folder",
+    isExpanded: true,
     children: [
       { id: "readme", name: "README.md", type: "file" },
       {
         id: "src",
         name: "src",
         type: "folder",
-        children: [
-          { id: "app", name: "App.tsx", type: "file" },
-        ],
+        children: [{ id: "app", name: "App.tsx", type: "file" }],
       },
     ],
   },
 ];
 
 export function ProjectTree() {
+  return <Direactree structure={structure} />;
+}
+```
+
+Without handlers the tree is read-only: it can be browsed, searched, and selected, but the toolbox buttons are disabled and nothing can be dragged.
+
+`isExpanded` sets the first open state of a folder. Use stable ids from your own data. Ids must be unique across the whole tree, because selection, editing, and moves identify nodes by id.
+
+## Make it editable
+
+`useDireactree` keeps the tree in React state and returns updaters that match the callbacks one to one:
+
+```tsx
+"use client";
+
+import Direactree, { useDireactree } from "direactree/next";
+
+export function ProjectTree() {
+  const tree = useDireactree(structure);
+
   return (
     <Direactree
-      structure={structure}
-      isAllExpanded
+      structure={tree.structure}
+      onSave={tree.save}
+      onDelete={tree.remove}
+      onNodeMove={tree.move}
     />
   );
 }
 ```
 
-The optional `isExpanded` field can control a specific folder's initial state:
+<HookBasicsDemo />
 
-```ts
-const folder: TreeNode = {
-  id: "src",
-  name: "src",
-  type: "folder",
-  isExpanded: true,
-  children: [],
-};
-```
-
-Use stable IDs from your own data source whenever possible. IDs are used to identify nodes across selection, editing, and move operations.
+Each control turns on when you pass its handler: `onSave` enables create and rename, `onDelete` enables delete, and `onNodeMove` enables dragging. To send a change to a server first, call the updater after the request succeeds. See [useDireactree & helpers](/docs/direactree/tree-updates).
 
 ## State ownership
 
-`structure` is controlled: your component owns it, and Direactree only reports what the user asked for. Creating, renaming, deleting, or moving a node calls your handler. The tree changes when you pass a new `structure`.
+`structure` is controlled: your component owns it, and Direactree only reports what the user asked for. Direactree keeps UI state only: selection, which folders are open, the open editor or confirmation, and pending and error state. Selection and open folders can be controlled too, with `selectedId`, `selectedIds`, and `expandedIds`.
 
-```tsx
-const [structure, setStructure] = useState<TreeNode[]>(initialStructure);
-const [selectedNode, setSelectedNode] = useState<NodePath | null>(null);
+`onCreateFolder`, `onCreateFile`, and `onRename` only mean the name editor opened. The create or rename itself arrives in `onSave` after the user confirms. Return a Promise from `onSave`, `onDelete`, or `onNodeMove` to make the tree wait for your API. See [Props & callbacks](/docs/direactree/api-reference#async-callbacks-and-errors).
 
-return (
-  <Direactree
-    structure={structure}
-    onSelectedNodeChange={setSelectedNode}
-    onSave={(change) => setStructure((current) => applySave(current, change))}
-    onDelete={(node) => setStructure((current) => removeNode(current, node.id))}
-    onNodeMove={(node, target) =>
-      setStructure((current) => moveNode(current, node.id, target.id))
-    }
-  />
-);
-```
+## Next steps
 
-`applySave`, `removeNode`, and `moveNode` are your own helpers. The [interactive example](/docs/direactree/examples#implementation-notes) shows them.
-
-The toolbox only enables what you handle. Without `onSave`, create and rename are disabled. Without `onDelete`, delete is disabled. Without `onNodeMove`, nodes cannot be dragged.
-
-`onCreateFolder`, `onCreateFile`, and `onRename` only mean that the name editor opened. The create or rename itself arrives in `onSave` after the user confirms. Return a Promise from `onSave`, `onDelete`, or `onNodeMove` to make the tree wait for your API. See [Props & callbacks](/docs/direactree/api-reference#async-callbacks-and-errors).
-
-## Upgrading from 0.1
-
-Version 0.2 changes some behavior:
-
-- **Handlers enable the controls.** Toolbox buttons and dragging are disabled when the matching handler is missing. A read-only tree needs no extra props.
-- **`isAllExpanded` is live.** While `true`, every folder stays open. Setting it to `false` closes every folder. A `key` to remount the tree is no longer needed.
-- **Selection follows `structure`.** When the selected node is removed, selection is cleared and `onSelectedNodeChange(null)` is called. A rename or move calls it again with the new path.
-- **The styles use CSS variables.** Overrides that targeted internal class names should set `--direactree-*` variables instead. See [Theming](/docs/direactree/theming#css-variables).
-
-New in 0.2: `theme`, `style`, `confirmDelete`, `messages`, `onActionError`, Promise-returning callbacks, keyboard navigation, and the `direactree/direactree.css` export.
+- [Interactive example](/docs/direactree/examples): every feature in one explorer.
+- [Names & permissions](/docs/direactree/validation): name rules, move conflicts, locked nodes.
+- [Search & navigation](/docs/direactree/navigation): search, reveal, multiple selection, keyboard.
+- [Rows, menus & toolbox](/docs/direactree/customization): icons, badges, context menu.
+- [Large trees](/docs/direactree/large-trees): lazy loading and virtualization.
+- [Styling & accessibility](/docs/direactree/theming): appearance, tokens, data attributes.
+- [Upgrading](/docs/direactree/upgrading): changes from 0.2 and 0.3.

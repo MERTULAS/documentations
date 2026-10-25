@@ -1,96 +1,124 @@
 # Direactree
 
-<p className="lead">A typed React component for displaying, navigating, and editing directory structures—with selection, toolbox actions, and drag-and-drop built in.</p>
+<p className="lead">A typed React component for showing, navigating, and editing directory trees. Selection, editing, drag and drop, search, permissions, and large-tree support are built in.</p>
 
 <div className="page-badges">
-  <span>React</span>
+  <span>React 17+</span>
   <span>TypeScript types included</span>
   <span>Next.js entry point</span>
-  <span>Drag and drop</span>
-  <span>Light & dark themes</span>
+  <span>Drag to move and reorder</span>
+  <span>Light, dark & RTL</span>
   <span>Keyboard accessible</span>
+  <span>Virtualized</span>
 </div>
 
-Direactree gives an application a familiar file-explorer experience without requiring you to build recursive rendering, path tracking, editing controls, and move validation from scratch.
+Direactree gives an application a familiar file-explorer experience without writing the tree rendering, path tracking, name editor, move rules, and tree updates yourself.
 
 <div className="quick-facts">
   <div><span>Install</span><code>npm install direactree</code></div>
+  <div><span>Version</span><code>0.4.0</code></div>
   <div><span>Package</span><a href="https://www.npmjs.com/package/direactree">npm</a></div>
   <div><span>Source</span><a href="https://github.com/MERTULAS/direactree">GitHub</a></div>
 </div>
 
 ## Why Direactree
 
-Use Direactree anywhere users need to inspect or manage hierarchical data:
+Use Direactree wherever users look at or manage hierarchical data:
 
 - File managers and IDE-style project explorers
 - Content management systems and media libraries
 - Category, menu, and organization editors
-- Database-backed folder structures
+- Database-backed folder structures, including ones loaded on demand
 - Read-only directory previews
 
-The component is intentionally persistence-agnostic. It accepts a serializable tree and reports user intent through callbacks, so the same UI can work with local React state, a REST API, or another backend.
+The component does not talk to a backend. It takes a serializable tree and reports what the user asked for, so the same UI works with local React state, a REST API, or a state library.
 
 ## How it works
-
-Direactree separates presentation from data ownership:
 
 ```text
 Your TreeNode[]
       ↓
   <Direactree />
       ↓
-selection / create / rename / delete / move events
+select / open / create / rename / delete / move / load
       ↓
-Your state manager or API
+useDireactree, your state library, or your API
       ↓
 Updated TreeNode[]
 ```
 
 1. Pass a `TreeNode[]` to `structure`.
-2. Direactree renders the hierarchy and handles its editing interface.
-3. Callback props describe what the user selected or attempted to change.
-4. Your application updates state or persists the operation, then passes the new `structure`.
+2. Direactree renders it and runs the editing interface.
+3. Callbacks describe what the user selected or tried to change.
+4. You apply the change, usually with one call from [`useDireactree`](/docs/direactree/tree-updates), and pass the new tree back.
 
-Direactree never changes `structure` itself. If a callback returns a Promise, the tree shows the request as pending and waits for it. If the Promise rejects, the editor stays open and shows the error.
+Direactree never changes `structure` itself. If a callback returns a Promise, the tree shows the request as pending and waits. If the Promise rejects, the editor stays open and shows the error.
+
+```tsx
+const tree = useDireactree(initialStructure);
+
+<Direactree
+  structure={tree.structure}
+  onSave={tree.save}
+  onDelete={tree.remove}
+  onNodeMove={tree.move}
+/>
+```
 
 <Callout title="Your application stays in control">
-  Direactree does not choose a database or API design. You decide how callback payloads are validated, saved, and returned as the next structure.
+  Direactree does not choose a database or API design. You decide how changes are validated, saved, and returned as the next tree.
 </Callout>
 
 ## Core features
 
-- Create a folder at the root or inside any folder.
-- Create a file at the root or inside any folder.
-- Rename an existing file or folder.
-- Delete an existing file or folder.
-- Move nodes with drag and drop.
-- Observe the current selection as a complete parent path.
-- Ask for confirmation before a delete.
-- Wait for async saves, deletes, and moves, with pending and error states.
-- Use the built-in toolbox or provide custom icons.
-- Configure indentation, expansion, dragging, and sticky controls.
-- Pick a light, dark, or system theme, or restyle it with CSS variables.
-- Replace every label and message, for translation or your own wording.
-- Navigate with the keyboard; screen readers get the ARIA tree roles.
-- Use the dedicated Next.js client entry point.
+**Editing**
 
-Each toolbox action and dragging is enabled only when you pass its handler. The toolbox can also be hidden independently from drag and drop. This makes read-only trees, partially editable trees, and fully editable explorers possible with the same component.
+- Create files and folders, rename, and delete, with an optional confirmation.
+- Name checks while typing: blank names, forbidden characters, reserved names, length, and duplicates in the same folder.
+- Drag nodes into folders, or before and after rows with `allowReorder`.
+- Ready-made updates through `useDireactree` and pure helpers such as `moveNode` and `applySave`.
+- Async callbacks with pending and error states.
+
+**Control**
+
+- Per-node permissions: lock a node, or turn off rename, delete, move, drop, or create for it.
+- Controlled or uncontrolled selection, single or multiple.
+- Controlled open folders with `expandedIds`, to remember them between visits.
+- A ref handle: `revealNode`, `expandAll`, `collapseAll`, `select`, `focus`.
+
+**Finding things**
+
+- Search that filters or highlights, opens the folders that hold a match, and marks it.
+- `onNodeActivate` on double click and Enter, to open a file.
+- Keyboard navigation, type-ahead, F2 to rename, Delete to delete.
+
+**Look**
+
+- Your own icons, badges, and labels per row, and a right-click menu with your own items.
+- `plain` or `card` appearance, `comfortable` or `compact` density, light, dark, or system theme.
+- Every color as a CSS token, state as data attributes, and `classNames` for utility CSS.
+- Right-to-left layouts, reduced motion, and Windows high contrast.
+
+**Scale**
+
+- Lazy loading of folder contents with loading and retry rows.
+- Virtualization: only the rows in view are rendered.
+
+Every action is enabled only when you pass its handler. Read-only trees, partly editable trees, and full explorers use the same component.
 
 ## Safety guarantees
 
-Direactree rejects structural operations that would create an invalid tree:
+Direactree refuses operations that would produce an invalid tree before your callback runs:
 
-- A file or folder cannot be moved into itself.
-- A folder cannot be moved into one of its descendants.
-- A file cannot receive child nodes.
-- Create operations cannot target a file node.
-- A node cannot be moved into the folder it is already in.
-- `onNodeMove` is not called for an invalid destination.
+- A node cannot be moved into itself or a folder into one of its descendants.
+- A file cannot receive children, and create cannot target a file.
+- A drop that changes nothing is ignored.
+- A move or a name that would put two items with the same name in one folder is refused.
+- Actions turned off by permissions cannot be started from the toolbox, keyboard, menu, or drag and drop.
 - Only one save, delete, or move runs at a time.
 
 <Callout tone="success" title="Validation before callbacks">
-  Invalid drag destinations are filtered by the component, so `onNodeMove` represents a structurally valid move request. Business rules specific to your application should still be validated in your own handler.
+  `onNodeMove` and `onSave` only receive structurally valid requests. Rules that belong to your application, such as who may edit what, should still be checked on your server.
 </Callout>
 
-Continue with [Getting started](/docs/direactree/getting-started), experiment with the [complete file explorer](/docs/direactree/examples), inspect every [prop and callback](/docs/direactree/api-reference), or adjust the look in [Theming & accessibility](/docs/direactree/theming).
+Continue with [Getting started](/docs/direactree/getting-started), play with the [complete file explorer](/docs/direactree/examples), or look up any [prop and callback](/docs/direactree/api-reference). Coming from an older version? See [Upgrading](/docs/direactree/upgrading).

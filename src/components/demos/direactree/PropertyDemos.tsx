@@ -1,120 +1,29 @@
 "use client";
 
-import type { ReactNode } from "react";
 import { useState } from "react";
-import Direactree from "direactree/next";
+import Direactree, { useDireactree } from "direactree/next";
 import type {
+  DireactreeAppearance,
+  DireactreeDensity,
   DireactreeMessages,
   DireactreeMutation,
   DireactreeTheme,
+  MoveInfo,
   NodePath,
   SaveProps,
   TreeNode,
 } from "direactree";
 import { cloneSampleTree } from "./sampleTree";
-import { applySave, removeNode } from "./treeOps";
-
-function Demo({
-  children,
-  controls,
-  description,
-  native = false,
-  title,
-}: {
-  children: ReactNode;
-  controls?: ReactNode;
-  description: string;
-  /** Skip the docs palette so the package's own theme is shown. */
-  native?: boolean;
-  title: string;
-}) {
-  return (
-    <section className={native ? "property-demo property-demo--native" : "property-demo"}>
-      <header className="property-demo__header">
-        <div>
-          <span>TRY IT</span>
-          <strong>{title}</strong>
-          <p>{description}</p>
-        </div>
-        {controls ? <div className="property-demo__controls">{controls}</div> : null}
-      </header>
-      <div className="property-demo__body">{children}</div>
-    </section>
-  );
-}
-
-function JsonResult({ label, value }: { label: string; value: unknown }) {
-  return (
-    <div className="property-demo__result" aria-live="polite">
-      <span>{label}</span>
-      <pre>{JSON.stringify(value, null, 2) ?? "null"}</pre>
-    </div>
-  );
-}
-
-function Toggle({
-  checked,
-  label,
-  onChange,
-}: {
-  checked: boolean;
-  label: string;
-  onChange: (value: boolean) => void;
-}) {
-  return (
-    <label className="demo-toggle">
-      <span>{label}</span>
-      <input
-        type="checkbox"
-        checked={checked}
-        onChange={(event) => onChange(event.target.checked)}
-      />
-    </label>
-  );
-}
-
-function Choice<T extends string>({
-  label,
-  onChange,
-  options,
-  value,
-}: {
-  label: string;
-  onChange: (value: T) => void;
-  options: readonly T[];
-  value: T;
-}) {
-  return (
-    <div role="group" aria-label={label} className="demo-choice">
-      {options.map((option) => (
-        <button
-          key={option}
-          type="button"
-          aria-pressed={option === value}
-          onClick={() => onChange(option)}
-        >
-          {option}
-        </button>
-      ))}
-    </div>
-  );
-}
-
-function wait(ms: number) {
-  return new Promise<void>((resolve) => setTimeout(resolve, ms));
-}
-
-// Without onSave and onDelete the toolbox buttons are disabled. Demos about
-// presentation pass these so the buttons stay usable; nothing is persisted.
-const noopHandlers = {
-  onSave: () => undefined,
-  onDelete: () => undefined,
-};
-
-function useStableTree() {
-  const [structure] = useState<TreeNode[]>(cloneSampleTree);
-  return structure;
-}
+import {
+  Choice,
+  Demo,
+  JsonResult,
+  SiteTree,
+  Toggle,
+  noopHandlers,
+  useStableTree,
+  wait,
+} from "./DemoFrame";
 
 export function StructureDemo() {
   const [structure, setStructure] = useState<TreeNode[]>(cloneSampleTree);
@@ -144,7 +53,7 @@ export function StructureDemo() {
       <div className="property-demo__split">
         <JsonResult label="structure" value={structure} />
         <div className="property-demo__tree">
-          <Direactree
+          <SiteTree
             structure={structure}
             showToolbox={false}
             allowDragAndDrop={false}
@@ -163,7 +72,7 @@ export function IndentDemo() {
   return (
     <Demo
       title="Indent spacing"
-      description="Move the slider to compare compact and spacious hierarchy levels."
+      description="Move the slider to compare compact and spacious hierarchy levels. The value is the full space added per level."
       controls={
         <label className="demo-range">
           <input
@@ -178,7 +87,7 @@ export function IndentDemo() {
       }
     >
       <div className="property-demo__tree property-demo__tree--solo">
-        <Direactree
+        <SiteTree
           structure={structure}
           indent={indent}
           showToolbox={false}
@@ -196,12 +105,12 @@ export function ExpandedDemo() {
 
   return (
     <Demo
-      title="Initial expansion"
+      title="Expand every folder"
       description="While true, every folder stays open. Switching back to false closes every folder."
       controls={<Toggle checked={expanded} label="isAllExpanded" onChange={setExpanded} />}
     >
       <div className="property-demo__tree property-demo__tree--solo">
-        <Direactree
+        <SiteTree
           structure={structure}
           isAllExpanded={expanded}
           showToolbox={false}
@@ -213,27 +122,35 @@ export function ExpandedDemo() {
 }
 
 export function DragAndDropDemo() {
-  const structure = useStableTree();
+  const tree = useDireactree(cloneSampleTree);
   const [enabled, setEnabled] = useState(true);
-  const [lastMove, setLastMove] = useState<{
-    source: TreeNode;
-    target: TreeNode;
-  } | null>(null);
+  const [reorder, setReorder] = useState(true);
+  const [lastMove, setLastMove] = useState<{ node: string; target: string; info: MoveInfo } | null>(null);
 
   return (
     <Demo
       title="Drag and drop"
-      description="Toggle movement, then drag a node onto a folder. The tree does not change because this demo only records the move."
-      controls={<Toggle checked={enabled} label="allowDragAndDrop" onChange={setEnabled} />}
+      description="Drag a node onto a folder, or between rows when allowReorder is on. The move is applied with useDireactree().move."
+      controls={
+        <>
+          <Toggle checked={enabled} label="allowDragAndDrop" onChange={setEnabled} />
+          <Toggle checked={reorder} label="allowReorder" onChange={setReorder} />
+          <button type="button" onClick={() => tree.reset()}>Reset</button>
+        </>
+      }
     >
       <div className="property-demo__split">
         <div className="property-demo__tree">
-          <Direactree
-            structure={structure}
+          <SiteTree
+            structure={tree.structure}
             allowDragAndDrop={enabled}
+            allowReorder={reorder}
             showToolbox={false}
             isAllExpanded
-            onNodeMove={(source, target) => setLastMove({ source, target })}
+            onNodeMove={(node, target, info) => {
+              setLastMove({ node: node.name, target: target.name, info });
+              tree.move(node, target, info);
+            }}
           />
         </div>
         <JsonResult label="last valid move" value={lastMove} />
@@ -253,7 +170,7 @@ export function ToolboxVisibilityDemo() {
       controls={<Toggle checked={visible} label="showToolbox" onChange={setVisible} />}
     >
       <div className="property-demo__tree property-demo__tree--solo">
-        <Direactree
+        <SiteTree
           structure={structure}
           {...noopHandlers}
           showToolbox={visible}
@@ -276,7 +193,7 @@ export function StickyToolboxDemo() {
       controls={<Toggle checked={sticky} label="toolboxSticky" onChange={setSticky} />}
     >
       <div className="property-demo__tree property-demo__tree--scroll">
-        <Direactree
+        <SiteTree
           structure={structure}
           {...noopHandlers}
           toolboxSticky={sticky}
@@ -292,21 +209,21 @@ export function ToolboxIconsDemo() {
   const [custom, setCustom] = useState(true);
   const toolboxIcons = custom
     ? {
-        createFolder: <span aria-label="Create folder">[F+]</span>,
-        createFile: <span aria-label="Create file">[+]</span>,
-        rename: <span aria-label="Rename">[E]</span>,
-        delete: <span aria-label="Delete">[X]</span>,
+        createFolder: <span>F+</span>,
+        createFile: <span>+</span>,
+        rename: <span>Aa</span>,
+        delete: <span>✕</span>,
       }
     : undefined;
 
   return (
     <Demo
       title="Custom toolbox icons"
-      description="Switch between Direactree defaults and custom React nodes."
+      description="Switch between the built-in SVG icons and your own React nodes."
       controls={<Toggle checked={custom} label="custom icons" onChange={setCustom} />}
     >
       <div className="property-demo__tree property-demo__tree--solo">
-        <Direactree
+        <SiteTree
           structure={structure}
           {...noopHandlers}
           toolboxIcons={toolboxIcons}
@@ -329,7 +246,7 @@ export function ClassNameDemo() {
       controls={<Toggle checked={framed} label="elegant frame" onChange={setFramed} />}
     >
       <div className="property-demo__tree property-demo__tree--solo">
-        <Direactree
+        <SiteTree
           structure={structure}
           className={framed ? "direactree-demo-highlight" : undefined}
           showToolbox={false}
@@ -352,7 +269,7 @@ export function SelectionCallbackDemo() {
     >
       <div className="property-demo__split">
         <div className="property-demo__tree">
-          <Direactree
+          <SiteTree
             structure={structure}
             showToolbox={false}
             allowDragAndDrop={false}
@@ -368,29 +285,27 @@ export function SelectionCallbackDemo() {
 
 export function NodeMoveCallbackDemo() {
   const structure = useStableTree();
-  const [sourceNode, setSourceNode] = useState<TreeNode | null>(null);
-  const [targetNode, setTargetNode] = useState<TreeNode | null>(null);
+  const [payload, setPayload] = useState<{ node: TreeNode; target: TreeNode; info: MoveInfo } | null>(null);
 
   return (
     <Demo
       title="Move callback"
-      description="Drag a node onto a valid folder to inspect source and target payloads. Applying the move is the parent's job, so the tree does not change here."
+      description="Drag a node onto a folder, or between rows. The three arguments appear below. The tree does not change because this demo only records the request."
     >
       <div className="property-demo__stack">
         <div className="property-demo__tree property-demo__tree--solo">
-          <Direactree
+          <SiteTree
             structure={structure}
             showToolbox={false}
+            allowReorder
             isAllExpanded
-            onNodeMove={(source, target) => {
-              setSourceNode(source);
-              setTargetNode(target);
-            }}
+            onNodeMove={(node, target, info) => setPayload({ node, target, info })}
           />
         </div>
-        <div className="property-demo__results-row">
-          <JsonResult label="sourceNode" value={sourceNode} />
-          <JsonResult label="targetNode" value={targetNode} />
+        <div className="property-demo__results-row property-demo__results-row--three">
+          <JsonResult label="node" value={payload?.node ?? null} />
+          <JsonResult label="target" value={payload?.target ?? null} />
+          <JsonResult label="info" value={payload?.info ?? null} />
         </div>
       </div>
     </Demo>
@@ -418,7 +333,7 @@ export function ToolboxCallbacksDemo() {
     >
       <div className="property-demo__split">
         <div className="property-demo__tree">
-          <Direactree
+          <SiteTree
             structure={structure}
             allowDragAndDrop={false}
             isAllExpanded
@@ -442,14 +357,14 @@ export function SaveCallbackDemo() {
   return (
     <Demo
       title="Save callback"
-      description="Start a create or rename action, enter a name, and confirm it."
+      description="Start a create or rename action, type a name, and confirm it. Names that are blank or already used in the folder cannot be saved."
       controls={
         <button type="button" onClick={() => setSaveProps(null)}>Clear result</button>
       }
     >
       <div className="property-demo__split">
         <div className="property-demo__tree">
-          <Direactree
+          <SiteTree
             structure={structure}
             allowDragAndDrop={false}
             isAllExpanded
@@ -465,19 +380,20 @@ export function SaveCallbackDemo() {
 export function ThemeDemo() {
   const structure = useStableTree();
   const [theme, setTheme] = useState<DireactreeTheme>("dark");
+  const [appearance, setAppearance] = useState<DireactreeAppearance>("plain");
+  const [density, setDensity] = useState<DireactreeDensity>("comfortable");
 
   return (
     <Demo
       native
-      title="Built-in themes"
-      description="This demo skips the documentation palette to show the package colors. system follows the operating system setting."
+      title="Theme, appearance, and density"
+      description="This demo skips the documentation palette to show the package's own colors. system follows the operating system."
       controls={
-        <Choice
-          label="theme"
-          options={["system", "light", "dark"] as const}
-          value={theme}
-          onChange={setTheme}
-        />
+        <div className="property-demo__control-stack">
+          <Choice label="theme" options={["system", "light", "dark"] as const} value={theme} onChange={setTheme} />
+          <Choice label="appearance" options={["plain", "card"] as const} value={appearance} onChange={setAppearance} />
+          <Choice label="density" options={["comfortable", "compact"] as const} value={density} onChange={setDensity} />
+        </div>
       }
     >
       <div className="property-demo__tree property-demo__tree--solo">
@@ -485,6 +401,8 @@ export function ThemeDemo() {
           structure={structure}
           {...noopHandlers}
           theme={theme}
+          appearance={appearance}
+          density={density}
           allowDragAndDrop={false}
           isAllExpanded
         />
@@ -493,7 +411,7 @@ export function ThemeDemo() {
   );
 }
 
-const turkishMessages: Partial<DireactreeMessages> = {
+export const turkishMessages: DireactreeMessages = {
   directoryTree: "Dizin ağacı",
   createFolder: "Klasör oluştur",
   createFile: "Dosya oluştur",
@@ -510,23 +428,39 @@ const turkishMessages: Partial<DireactreeMessages> = {
   deleting: "Siliniyor…",
   confirmDelete: "Silmeyi onayla",
   actionFailed: "Bir şeyler ters gitti.",
+  nameEmpty: "Bir ad girin.",
+  nameInvalidChars: "Ad “{char}” içeremez.",
+  nameReserved: "“{name}” ad olarak kullanılamaz.",
+  nameTooLong: "Ad en fazla {max} karakter olabilir.",
+  nameDuplicate: "“{name}” bu klasörde zaten var.",
+  moveConflict: "“{name}”, {target} içinde zaten var.",
+  search: "Ara",
+  searchPlaceholder: "Ara…",
+  noResults: "Eşleşen öğe yok.",
+  loading: "Yükleniyor…",
+  loadFailed: "Bu klasör yüklenemedi.",
+  retry: "Tekrar dene",
+  contextMenu: "{name} için işlemler",
 };
 
 export function MessagesDemo() {
-  const structure = useStableTree();
+  const tree = useDireactree(cloneSampleTree);
   const [translated, setTranslated] = useState(true);
 
   return (
     <Demo
       title="Custom messages"
-      description="Hover a toolbox button, start a rename, or delete a node to see the replaced copy."
+      description="Search, hover a toolbox button, type a blank or duplicate name, right-click a row, or delete a node to see the replaced copy."
       controls={<Toggle checked={translated} label="Türkçe" onChange={setTranslated} />}
     >
       <div className="property-demo__tree property-demo__tree--solo">
-        <Direactree
-          structure={structure}
-          {...noopHandlers}
+        <SiteTree
+          structure={tree.structure}
+          onSave={tree.save}
+          onDelete={tree.remove}
           confirmDelete
+          showSearch
+          contextMenu
           messages={translated ? turkishMessages : undefined}
           allowDragAndDrop={false}
           isAllExpanded
@@ -537,7 +471,7 @@ export function MessagesDemo() {
 }
 
 export function ConfirmDeleteDemo() {
-  const [structure, setStructure] = useState<TreeNode[]>(cloneSampleTree);
+  const tree = useDireactree(cloneSampleTree);
   const [confirm, setConfirm] = useState(true);
 
   return (
@@ -547,17 +481,17 @@ export function ConfirmDeleteDemo() {
       controls={
         <>
           <Toggle checked={confirm} label="confirmDelete" onChange={setConfirm} />
-          <button type="button" onClick={() => setStructure(cloneSampleTree())}>Reset</button>
+          <button type="button" onClick={() => tree.reset()}>Reset</button>
         </>
       }
     >
       <div className="property-demo__tree property-demo__tree--solo">
-        <Direactree
-          structure={structure}
+        <SiteTree
+          structure={tree.structure}
           confirmDelete={confirm}
           allowDragAndDrop={false}
           isAllExpanded
-          onDelete={(node) => setStructure((current) => removeNode(current, node.id))}
+          onDelete={tree.remove}
         />
       </div>
     </Demo>
@@ -565,7 +499,7 @@ export function ConfirmDeleteDemo() {
 }
 
 export function AsyncCallbacksDemo() {
-  const [structure, setStructure] = useState<TreeNode[]>(cloneSampleTree);
+  const tree = useDireactree(cloneSampleTree);
   const [fail, setFail] = useState(false);
   const [lastError, setLastError] = useState<{
     action: DireactreeMutation;
@@ -575,13 +509,13 @@ export function AsyncCallbacksDemo() {
   const handleSave = async (change: SaveProps) => {
     await wait(900);
     if (fail) throw new Error("The server rejected this name.");
-    setStructure((current) => applySave(current, change));
+    tree.save(change);
   };
 
   const handleDelete = async (node: NodePath) => {
     await wait(900);
     if (fail) throw new Error("The server could not delete this node.");
-    setStructure((current) => removeNode(current, node.id));
+    tree.remove(node);
   };
 
   return (
@@ -594,7 +528,7 @@ export function AsyncCallbacksDemo() {
           <button
             type="button"
             onClick={() => {
-              setStructure(cloneSampleTree());
+              tree.reset();
               setLastError(null);
             }}
           >
@@ -605,8 +539,8 @@ export function AsyncCallbacksDemo() {
     >
       <div className="property-demo__split">
         <div className="property-demo__tree">
-          <Direactree
-            structure={structure}
+          <SiteTree
+            structure={tree.structure}
             confirmDelete
             allowDragAndDrop={false}
             isAllExpanded

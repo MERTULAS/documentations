@@ -2,109 +2,80 @@ import DireactreePlayground from "@/components/demos/direactree/DireactreePlaygr
 
 # Interactive example
 
-<p className="lead">A complete in-browser file explorer demonstrating selection, content preview, creation, renaming, deletion, and moving nodes.</p>
+<p className="lead">A complete file explorer in the browser: search, preview, create, rename, delete, drag to move or reorder, and a right-click menu.</p>
 
 ## File explorer demo
 
-This example keeps its structure in React state and loads mock file contents from the public directory. Each handler builds the next tree and calls `setStructure`; Direactree never changes the tree itself. Every change is local to your browser and can be returned to the initial state with **Reset tree**.
+The tree lives in `useDireactree` and its contents load from mock files. Every change stays in your browser; **Reset tree** brings the first state back.
 
 <DireactreePlayground />
 
 ## Operations to try
 
-### Select and preview a file
+### Open a file
 
-Click a file such as `project-notes.txt`, `config.json`, or `REST-API.md`. `onSelectedNodeChange` receives its `NodePath`, and the example loads the content associated with the node ID.
+Double click `project-notes.txt`, `config.json`, or `REST-API.md`, or focus it and press <kbd>Enter</kbd>. `onNodeActivate` receives the node and the example loads its content. Right-click a file for the custom **Open preview** item.
 
-### Create a folder or file
+### Search
 
-Select a folder and use the toolbox create action. After a name is confirmed, `onSave` receives:
+Type `json` or `api` in the search field. Only matching rows and their folders stay visible, and the match is marked. <kbd>↓</kbd> or <kbd>Enter</kbd> in the field moves to the first match; <kbd>Escape</kbd> clears it.
 
-```ts
-{
-  actionType: "create",
-  createType: "folder", // or "file"
-  newName: "components",
-  selectedNode: { /* selected parent path */ }
-}
-```
+### Create, rename, delete
 
-When no folder is selected, a create callback receives `null`; the new node can be added at the root.
+Select a folder and use the toolbox, the right-click menu, <kbd>F2</kbd>, or <kbd>Delete</kbd>. Type a name that already exists in the folder, or one with `/`, and Save stays disabled with a message. Delete asks for confirmation first. The folders are kept sorted with folders first, because the hook has `sort: "foldersFirst"`.
 
-### Rename or delete a node
+### Move and reorder
 
-Select a node and choose the rename or delete action. Rename is finalized through `onSave` with `actionType: "edit"`. The example sets `confirmDelete`, so delete first opens a confirmation under the row; `onDelete` receives the `NodePath` only after you confirm. If the deleted node was selected, the selection clears and the preview empties.
-
-### Move a node
-
-Drag a file or folder onto another folder. `onNodeMove` receives the source node and its valid target. Dropping onto a file, onto the source itself, into a descendant, or into the folder it is already in is rejected.
+Drag a row onto a folder to move it inside, or near the top or bottom edge of a row to drop it before or after. A line or a dashed box shows where it will land. The root folder `Desktop` is protected: it cannot be renamed, deleted, or dragged.
 
 ### Use the keyboard
 
-Click a row, then use the arrow keys. <kbd>→</kbd> opens a folder or moves into it, <kbd>←</kbd> moves back to the parent, and <kbd>Home</kbd> and <kbd>End</kbd> jump to the ends. In the name editor, <kbd>Enter</kbd> saves and <kbd>Escape</kbd> cancels.
+Click a row, then use the arrow keys. <kbd>→</kbd> opens a folder or moves into it, <kbd>←</kbd> goes back to the parent, <kbd>Home</kbd> and <kbd>End</kbd> jump to the ends, and typing letters jumps to the next row that starts with them. <kbd>Shift</kbd>+<kbd>F10</kbd> opens the menu.
 
-## Implementation notes
+## How it is built
 
-Each handler turns a callback payload into a new tree. The helpers copy the tree before changing it, so React receives a new array instead of a mutated state reference:
-
-```ts
-function applySave(nodes: TreeNode[], change: SaveProps): TreeNode[] {
-  const next = structuredClone(nodes);
-
-  if (change.actionType === "edit" && change.selectedNode) {
-    const node = findNode(next, change.selectedNode.id);
-    if (node) node.name = change.newName;
-    return next;
-  }
-
-  const newNode: TreeNode = {
-    id: crypto.randomUUID(),
-    name: change.newName,
-    type: change.createType ?? "file",
-    ...(change.createType === "folder" ? { children: [] } : {}),
-  };
-  const parent = change.selectedNode && findNode(next, change.selectedNode.id);
-
-  if (parent?.type === "folder") {
-    parent.children = [...(parent.children ?? []), newNode];
-  } else {
-    next.push(newNode);
-  }
-  return next;
-}
-
-function moveNode(nodes: TreeNode[], sourceId: string, targetId: string): TreeNode[] {
-  const next = structuredClone(nodes);
-  const moved = detachNode(next, sourceId);
-  const target = findNode(next, targetId);
-  if (!moved || target?.type !== "folder") return nodes;
-
-  target.children = [...(target.children ?? []), moved];
-  return next;
-}
-```
-
-`findNode` searches the tree by ID, and `detachNode` removes a node from its parent's `children` and returns it. The handlers then stay short:
+The whole explorer is one hook and props. No tree helpers are written by hand:
 
 ```tsx
+const tree = useDireactree(initialStructure, { sort: "foldersFirst" });
+const ref = useRef<DireactreeHandle>(null);
+
 <Direactree
-  structure={structure}
+  ref={ref}
+  structure={tree.structure}
+  onSave={tree.save}
+  onDelete={tree.remove}
+  onNodeMove={tree.move}
+  allowReorder
   confirmDelete
-  onSave={(change) => setStructure((current) => applySave(current, change))}
-  onDelete={(node) => setStructure((current) => removeNode(current, node.id))}
-  onNodeMove={(node, target) =>
-    setStructure((current) => moveNode(current, node.id, target.id))
+  showSearch
+  toolboxSticky
+  renderIcon={(node, { expanded }) => <FileIcon node={node} expanded={expanded} />}
+  contextMenu={(node, defaults) =>
+    node.type === "file"
+      ? [{ id: "open", label: "Open preview", onSelect: openFile }, "separator", ...defaults]
+      : defaults
   }
+  getNodePermissions={(node, path) =>
+    path.parent === null ? { rename: false, delete: false, move: false } : {}
+  }
+  toolboxActions={[
+    { id: "expand", label: "Expand all", icon: "⊞", onClick: () => ref.current?.expandAll() },
+    { id: "collapse", label: "Collapse all", icon: "⊟", onClick: () => ref.current?.collapseAll() },
+  ]}
+  onNodeActivate={openFile}
 />
 ```
 
+Each prop is covered in the guides: [useDireactree](/docs/direactree/tree-updates), [names & permissions](/docs/direactree/validation), [search & navigation](/docs/direactree/navigation), and [rows, menus & toolbox](/docs/direactree/customization).
+
 ## Persisting changes
 
-With a backend, return a Promise from the handler. Direactree shows the request as pending, disables the controls until it settles, and keeps the editor or confirmation open with the error message if it rejects.
-
-### Wait for the server
+With a backend, return a Promise from the handler and call the hook after the server agrees. Direactree shows the request as pending, disables the controls until it settles, and keeps the editor or confirmation open with the error if it rejects.
 
 ```tsx
+const tree = useDireactree(initialStructure);
+
 async function handleSave(change: SaveProps) {
   const response = await fetch("/api/tree", {
     method: change.actionType === "create" ? "POST" : "PATCH",
@@ -112,35 +83,21 @@ async function handleSave(change: SaveProps) {
     body: JSON.stringify(change),
   });
   if (!response.ok) throw new Error("The change could not be saved.");
+  const saved = await response.json();
+  tree.save(change, { id: saved.id }); // use the server id for a new node
+}
 
-  setStructure(await response.json());
+async function handleNodeMove(node: TreeNode, target: TreeNode, info: MoveInfo) {
+  await api.move(node.id, info.parentId, info.index);
+  tree.move(node, target, info);
 }
 ```
 
-The row changes only after `setStructure`. If the request fails, the editor stays open with the typed name, so the user can retry.
-
-### Update first, roll back on failure
-
-```tsx
-async function handleSave(change: SaveProps) {
-  const previous = structure;
-  setStructure(applySave(previous, change));
-  try {
-    await api.save(change);
-  } catch (error) {
-    setStructure(previous);
-    throw error;
-  }
-}
-```
-
-Direactree does not roll back for you, because it never changed the tree. Re-throw the error so the editor stays open and `onActionError` is called.
-
-A failed move has no editor to show its error in. Use `onActionError` to show a toast or message:
+A failed move has no editor to show its error in, so use `onActionError`:
 
 ```tsx
 <Direactree
-  structure={structure}
+  structure={tree.structure}
   onNodeMove={handleNodeMove}
   onActionError={(error, action) => {
     if (action === "move") showToast("The item could not be moved.");
@@ -148,10 +105,8 @@ A failed move has no editor to show its error in. Use `onActionError` to show a 
 />
 ```
 
-Validate permissions, names, and parent relationships on the server. Direactree protects the UI from structurally invalid moves, but application-specific authorization remains your responsibility.
+Check permissions, names, and parent relationships on the server as well. Direactree keeps the UI from making invalid requests, but your server is the authority.
 
 <Callout title="Callback payloads are the integration boundary">
-  The tree handles interaction and path reporting. Your application decides whether to update local state, call an API, or reject the operation.
+  The tree handles interaction and reports intent. Your application decides whether to update local state, call an API, or refuse the change.
 </Callout>
-
-Inspect every payload live in the [Props & callbacks reference](/docs/direactree/api-reference).
